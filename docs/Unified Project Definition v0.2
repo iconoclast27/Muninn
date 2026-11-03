@@ -1,0 +1,105 @@
+Vault Overseer — Unified Project Definition v0.2 (Lean)
+
+Status: draft for ruling Date: 2026-11-03 Supersedes: the spine-centric architecture of the Project Definition (annotated, not deleted, once ruled) Companion: [[Tool & Skill Strategy]], [[Session Handover — 2026-11-02]], [[Lessons from the Incumbents — Comparison Doc v2]] Read this before: touching any component, recipe, fixture, or prompt — any model, any instance.
+Origin and correction
+
+The original goal, stated plainly: semantic search over the vault, with a nice-to-have mobile-readable mode, the search available to the next plugin (the assistant), which uses skill-based tool use to prevent models flailing at tool surfaces.
+
+That was all. The event-log spine — shards, origin ladder, merge-scan, checkpoint chain, sync-exposure — was architected in and then consumed 0.1.x's development arc, before interrogation proved (2026-11-02–03, receipts in the handover): its only production consumer read data re-derivable from disk; its genuinely irreplaceable data (dwell, actor attribution) had no consumer; and its sync-exposure was a constraint Dan never asked for. One archived, irrecoverable "database tour" justified an engine choice that failed its first runtime test. This document is the reset: architecture now derives from stated requirements, not from inherited machinery.
+Shared principles (govern everything below)
+
+    The model judges; the harness acts. No LLM ever receives a tool menu or executes anything. Recipes are forms; the model fills blanks; the harness owns every side effect. Wide tool surfaces invite exactly the confusion this project exists to eliminate.
+    The plugin owns one durable artifact — the index — and rents everything else. Obsidian owns history, trash, sync, events. Disk owns content truth. Everything the plugin writes is rebuildable by one full walk.
+    Receipts or nothing. Paste > guess. Platform claims, APIs, and version facts require evidence. Compressed context drifts; reconcile against ground truth.
+    Fixture-first, declared limitations, one pump ever. The failing scenario precedes the implementation; first-contact reds are expected; loud over silent; serialized single-flight lanes.
+    Disk-as-truth. Watermarks remember, disk decides. Triggers are hints, not data.
+
+PART 1 — Index Plugin (Plugin 1)
+Mission
+
+Maintain a semantic + text search index of the vault; expose it to Plugin 2 and to a sidebar UI; rebuild on demand.
+Engine (receipted)
+
+@sqlite.org/sqlite-wasm 3.54.1, embedded base64, one 1.6 MB main.js. Spike-green inside Obsidian (2026-11-02): FTS5 in, trigram working, BM25 live, export 49,152 bytes. Init requires both keys — wasmBinary and locateFile: () => 'sqlite3.wasm' (the second short-circuits a new URL(import.meta.url) crash under CJS). DB flags 'c', never 'ct'. Quartet-shipped, BRAT-compatible, no native binaries, no per-device staging.
+Index schema (Zone 2, cache/index.db)
+Table	Keys	Role
+meta	key	schema_version, chunker_epoch, embedder_model_tag, embedder_epoch
+files	path	watermarks: size, mtime, content hash — cheap change gate
+chunks	vh (PK)	path, ord, bs, be
+embeddings	vh (PK)	vector BLOB, dim, model_tag
+fts	rowid	FTS5 virtual, trigram, self-contained (F15 ruling stands)
+tag_vocab	tag	derived vocabulary (feeds Plugin 2 validation)
+notices	id	capped ring-buffer: dark conditions, stale-skip tallies
+
+Keying by vh, not path: embeddings survive renames and partial edits. Epoch bumps (chunker or embedder change) cause clean full re-embeds, never mysteries.
+Boot and runtime
+
+    Init engine → open DB (import-from-bytes; export-to-bytes on debounced flush and unload).
+    Full walk: every file vs files watermark. Unchanged → untouched. Changed/new → re-chunk → vh diff → embed deltas, evict vanishings.
+    Epoch check → forced full pass if mismatched.
+    Arm intake lane: Obsidian's own vault events, debounced, single-flight, one pump ever. An event is a trigger — "recheck that file's watermark" — never data. Anything missed offline is caught by the next walk; correctness never depended on the stream.
+    Serve search.
+
+Containment, disposal, darkness-warning, and stat() survive from the 2026-11-02 wiring; eventsDir inputs die.
+Search modes
+
+    Text: FTS5 trigram, BM25. Named limitation (receipt): trigram needs ≥3 chars — shorter queries miss silently. Policy owed (fallback or UI guard).
+    Semantic: query → Ollama embed (local, Dan's standing embedder; specifics = receipt owed) → cosine scan of embeddings. Brute force at vault scale; ANN later if receipts demand.
+    Hybrid (text filter, vector rank): later, natural.
+
+UI
+
+Sidebar pane (query, mode toggle, debounced typing, scored results, click-to-open — live-receipt-proven when built). Settings: engine status, manual reindex button (wipe → full walk → full embed, with confirmation and progress), embedder display, darkness warning.
+Public API (freeze before Plugin 2 builds)
+
+Harness-facing, typed, dark-safe (null + reason, never throws):
+searchText(query, opts)         → { hits, skipped } | null
+searchSemantic(text, opts)     → { hits, skipped } | null
+relatedChunks(path, k)         → { neighbors } | null   // skill #3's primitive
+tagVocabulary()               → { tags } | null         // skill #1's validator
+
+Shapes frozen forever: a harness and recipes build against them; breaking one is a version event.
+Demolition list
+
+src/eventlog/* entire; dwell gate's spine output; planner and watcher spine halves (subscription reborn as intake lane); _vault-index/events/, origin.txt; better-sqlite3 + its external entry. Fixture suites policing spine semantics retire with their subject (F01/F02/F03/F11 and friends — sweep owed); chunker and F15-derived scenarios migrate, re-pointed to the walk.
+PART 2 — Assistant Plugin (Plugin 2)
+Mission
+
+An LLM-assisted curator of the vault that never lets the model act. Exists to kill the observed failure mode: models handed broad toolsets invent tools and spray calls, hoping something works. The remedy is not smarter models — it is removing the menu.
+Mechanism
+
+Skill recipes — declarative Markdown, one bounded task each: Metadata (name, version, model tier, risk class), Trigger, Inputs (harness-gathered before the model sees anything — searches, contents, vocabularies), Instructions (declarative, constraining), Output contract (strict JSON schema), Apply method (harness routine), Validation (ground-truth checks).
+
+Flow: harness assembles context → renders the form with judgment targets blank → model returns schema-conforming output → harness validates against schema and vault truth → diff view → human approval → harness applies. A hallucinated call is a syntax error, not an incident.
+The gate — v1 ruling (2026-11-03)
+
+One gate, no exceptions. read-only and suggest ship; write (auto-apply) is deferred — its only candidate (frontmatter-fill for template-less new notes) is uncommon, so automation buys nothing. That candidate becomes a detection skill: harness detects missing fields (zero model involvement), model proposes, diff gate reviews. If write-class is ever admitted, revertibility is rented from Obsidian's version history and trash — no plugin-owned audit log. The diff gate is R10 and the differentiator: schema-valid ≠ correct; every LLM edit faces a human in native diff.
+Candidate skills (validation order)
+
+    Tag assignment (simple schema, grades easily)
+    Frontmatter detection/repair (tests validation strictness)
+    Related notes via relatedChunks (tests harness-assembled context)
+    Summary digest (tests multi-input assembly)
+
+Each ships only after failure modes are exercised on the pathological fixtures.
+Corrections notebook
+
+Model-side complement to the fixture corpus: record invalid outputs → track recurrence → promote repeating patterns (threshold ~4) into recipes with evidence trails → feed back into prompts. Fixtures police the harness; the notebook polices the model; recurring entries are free requirements discovery. Residency: pending ruling.
+Scope guardrail
+
+Curation and assistance only. One recipe, one output contract, or it isn't a v1 skill. No agentic wandering, no chaining, no autonomous browsing — out of scope.
+Joint build order (the two plugins are one arc)
+
+    Ollama embed spike — endpoint, batch shape, model tag convention; the last unproven mechanism in the pipeline.
+    WASM import-from-bytes receipt — export is proven, round-trip is not.
+    Corpus sweep — fixture-by-fixture keep/retire/rewrite ruling list.
+    Demolition + store rewrite — the driver swap behind the type-only seam; F15 scenarios re-pointed to the walk; re-certification treated as real.
+    Index green end-to-end on Desktop — sidebar search live receipt, manual reindex live receipt.
+    Freeze the Plugin 1 API.
+    Plugin 2 harness skeleton — recipe loader, renderer, validator, diff gate.
+    Skill #1 (tags) — first end-to-end proof of the model-judges doctrine.
+    Remaining skills, corrections loop, then the deferred rulings revisit (write-class, notebook residency, mobile).
+
+Rulings owed to close this draft: trigram short-query policy · chunker determinism statement · corrections-notebook residency · manual reindex semantics · any veto on the demolition list.
+
+That's the unified draft — two parts, one spine-less whole, the coupling explicit at the API boundary and the build order. Per the Qwen feasibility question parked in the handover: note that steps 4–5 are exactly the escalation-ladder-shaped work a bounded local implementer could take on — single files, type-only seams, fixture referees — once you've ruled on the demolition list and the specs are frozen. Say the word on the five rulings or send corrections, and v0.2 graduates from draft to definition.
