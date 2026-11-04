@@ -91,6 +91,10 @@ export class IntakeLane {
     // Event-driven API
     // -----------------------------------------------------------------------
 
+    /** Optional callback invoked whenever the lane mutates store state.
+     *  Used by the plugin entry point to debounce cache flushes. */
+    onMutation?: () => void;
+
     onCreate(path: string): void {
         this.schedule(path, { kind: 'touch' });
     }
@@ -166,6 +170,7 @@ export class IntakeLane {
             this.pending.delete(path);
             try {
                 await this.applyOp(path, op);
+                this.onMutation?.();
             } catch (e) {
                 // eslint-disable-next-line no-console
                 console.error(`[Muninn] intake error for ${path}:`, e);

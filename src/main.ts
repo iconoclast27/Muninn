@@ -18,13 +18,19 @@ import { CHUNKER_CP } from './chunker/chunker.ts';
 const MODEL_TAG = 'ollama/nomic-embed-text:v1.5';
 const DIM = 768;
 
+const FLUSH_DEBOUNCE_MS = 2000;
+
 export default class MuninnPlugin extends Plugin {
     private store: Store | null = null;
     private lane: IntakeLane | null = null;
     private api: MuninnApi | null = null;
+    private cachePath: string | null = null;
+    private flushTimer: number | null = null;
+    private flushInProgress: Promise<void> | null = null;
 
     async onload(): Promise<void> {
         const cachePath = this.getCachePath();
+        this.cachePath = cachePath;
         const cacheDir = cachePath.substring(0, cachePath.lastIndexOf('/'));
         try {
             await this.app.vault.adapter.mkdir(normalizePath(cacheDir));
@@ -32,19 +38,22 @@ export default class MuninnPlugin extends Plugin {
             // Directory may already exist; ignore.
         }
 
+        let loadBytes: Uint8Array | undefined;
         try {
-            this.store = await openStore(cachePath);
+            const raw = await this.app.vault.adapter.readBinary(normalizePath(cachePath));
+            loadBytes = raw instanceof Uint8Array ? raw : new Uint8Array(raw);
         } catch (e) {
             // eslint-disable-next-line no-console
-            console.error('[Muninn] failed to open store on disk, falling back to in-memory:', e);
-            try {
-                this.store = await openStore(':memory:');
-            } catch (e2) {
-                // eslint-disable-next-line no-console
-                console.error('[Muninn] failed to open in-memory store:', e2);
-                this.store = null;
-                return;
-            }
+            console.log('[Muninn] no existing cache to load:', (e as Error).message);
+        }
+
+        try {
+            this.store = await openStore(':memory:', loadBytes !== undefined && loadBytes.length > 0 ? { load: loadBytes } : {});
+        } catch (e) {
+            // eslint-disable-next-line no-console
+            console.error('[Muninn] failed to open in-memory store:', e);
+            this.store = null;
+            return;
         }
 
         const embedClient = new OllamaEmbedClient();
@@ -61,26 +70,46 @@ export default class MuninnPlugin extends Plugin {
             if (!this.lane || !this.api) return;
             this.registerVaultHandlers(this.app.vault);
             // Initial background walk.
-            this.lane.forceReindex().catch((e: unknown) => {
-                // eslint-disable-next-line no-console
-                console.error('[Muninn] initial reindex failed:', e);
-            });
+            this.lane.forceReindex()
+                .then(() => this.flushCache().catch((flushErr: unknown) => {
+                    // eslint-disable-next-line no-console
+                    console.error('[Muninn] initial reindex flush failed:', flushErr);
+                }))
+                .catch((e: unknown) => {
+                    // eslint-disable-next-line no-console
+                    console.error('[Muninn] initial reindex failed:', e);
+                });
         });
 
         this.addCommand({
             id: 'force-reindex',
             name: 'Force reindex vault',
             callback: () => {
-                this.api?.forceReindex().catch((e: unknown) => {
-                    // eslint-disable-next-line no-console
-                    console.error('[Muninn] force reindex command failed:', e);
-                });
+                this.api?.forceReindex()
+                    .then(() => this.flushCache().catch((flushErr: unknown) => {
+                        // eslint-disable-next-line no-console
+                        console.error('[Muninn] force reindex flush failed:', flushErr);
+                    }))
+                    .catch((e: unknown) => {
+                        // eslint-disable-next-line no-console
+                        console.error('[Muninn] force reindex command failed:', e);
+                    });
             },
         });
     }
 
     onunload(): void {
         this.lane?.stop();
+        if (this.flushTimer !== null) {
+            window.clearTimeout(this.flushTimer);
+            this.flushTimer = null;
+        }
+        // Best-effort synchronous flush on unload. Obsidian's onunload is
+        // synchronous, so we fire the async write and keep a reference; the
+        // process exit will usually wait for the pending promise.
+        if (this.store !== null && this.cachePath !== null) {
+            this.flushInProgress = this.flushCache();
+        }
         this.store?.close();
         this.lane = null;
         this.store = null;
@@ -98,7 +127,7 @@ export default class MuninnPlugin extends Plugin {
     }
 
     private createLane(vault: Vault, embedClient: EmbedClient): IntakeLane {
-        return new IntakeLane({
+        const lane = new IntakeLane({
             store: this.store!,
             source: new ObsidianFileSource(vault),
             embedClient,
@@ -106,6 +135,29 @@ export default class MuninnPlugin extends Plugin {
             epoch: 1,
             chunkerCp: CHUNKER_CP,
         });
+        // Any store mutation through the lane may change the cache; debounce
+        // a flush to disk.
+        lane.onMutation = () => this.scheduleCacheFlush();
+        return lane;
+    }
+
+    private scheduleCacheFlush(): void {
+        if (this.flushTimer !== null) {
+            window.clearTimeout(this.flushTimer);
+        }
+        this.flushTimer = window.setTimeout(() => {
+            this.flushTimer = null;
+            this.flushCache().catch((e: unknown) => {
+                // eslint-disable-next-line no-console
+                console.error('[Muninn] cache flush failed:', e);
+            });
+        }, FLUSH_DEBOUNCE_MS);
+    }
+
+    private async flushCache(): Promise<void> {
+        if (this.store === null || this.cachePath === null) return;
+        const bytes = this.store.serialize();
+        await this.app.vault.adapter.writeBinary(normalizePath(this.cachePath), bytes.buffer as ArrayBuffer);
     }
 
     private registerVaultHandlers(vault: Vault): void {

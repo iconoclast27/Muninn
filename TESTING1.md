@@ -30,10 +30,11 @@ Use this document to smoke-test the Plugin 1 build in Obsidian with the develope
 
 ### Expected results
 - No uncaught exception in the console on load.
-- A log line appears: `[Muninn] failed to open store:` — expected on every renderer load in this build. The browser SQLite WASM build cannot open arbitrary OS paths in Obsidian, so the store falls back to an in-memory database. This is a disclosed smoke-test limitation, not a personal-machine failure.
+- The SQLite store is now an in-memory database (`:memory:`) that is loaded from and flushed to `.obsidian/plugins/muninn/cache/index.db` bytes via `Vault.adapter.readBinary` / `writeBinary`.
+- A log line may appear: `[Muninn] no existing cache to load:` — expected on the very first enable (no cache file yet), but not on subsequent loads.
 - A log line may appear: `[Muninn] initial reindex failed:` **only if** Ollama is absent; otherwise the initial background reindex should start silently.
 - The command palette shows **Muninn: Force reindex vault**.
-- The file `.obsidian/plugins/muninn/cache/index.db` is **not** created on disk in this build. The index is held in memory only (see "Known limitations").
+- The file `.obsidian/plugins/muninn/cache/index.db` is created on disk after the first successful flush (within a few seconds of the initial reindex completing or after running **Force reindex vault**).
 
 ## Scenario B — Force reindex command
 
@@ -179,15 +180,10 @@ This is a new event-test note for Muninn.
 - The old path does not return hits.
 - No re-embed is triggered (no new Ollama request for that content).
 
-## Scenario I — Persistence round-trip (Phase C receipt, not yet expected)
+## Scenario I — Persistence round-trip
 
 ### Conditions
 - Plugin has indexed the vault.
-
-### Status in 0.2.0-test.2
-This scenario **cannot pass yet**. The current build runs SQLite on an in-memory database (`:memory:`) because the browser SQLite WASM build cannot open OS paths in Obsidian's renderer. There is no serialize/deserialize persistence seam in this tag.
-
-Run it anyway to capture the current baseline:
 
 ### Steps
 1. Note the current search result count for a query.
@@ -195,14 +191,9 @@ Run it anyway to capture the current baseline:
 3. Reopen Obsidian and the same vault.
 4. Run the same search before any reindex.
 
-### Expected results in this build (baseline)
-- The search will likely return different results or no results until the background reindex completes, because the previous in-memory index was destroyed when Obsidian closed.
-- A full vault reindex is triggered on relaunch (watermarks table is empty), which may take a noticeable amount of time and re-embed every chunk if Ollama is running.
-- The cache file `.obsidian/plugins/muninn/cache/index.db` is **not** present on disk.
-
-### Expected results once the persistence seam lands (Phase C)
+### Expected results
 - The same search returns the same results without requiring a reindex.
-- The cached database bytes are imported from `.obsidian/plugins/muninn/cache/index.db` on load via `Vault.adapter.readBinary` and SQLite WASM deserialize.
+- The cache file `.obsidian/plugins/muninn/cache/index.db` is present on disk and was imported on load via `Vault.adapter.readBinary`.
 - No full reindex is triggered automatically on relaunch beyond the initial background walk (which should be a no-op for unchanged files).
 
 ## Scenario J — Ollama dark-safe behavior
@@ -232,7 +223,8 @@ For each scenario, record:
 
 ## Known limitations of this test build
 
-- **Persistence is not implemented in this tag.** The index is held in an in-memory SQLite database. On every Obsidian restart or plugin reload the index is rebuilt from scratch, which re-embeds the entire vault if Ollama is running. The planned persistence model is whole-DB serialize/deserialize via SQLite WASM `sqlite3_serialize` / `sqlite3_deserialize` (or equivalent) plus Obsidian `Vault.adapter.readBinary` / `writeBinary` — this is Phase C work, not a normal disk-write fallback.
+- Persistence is **debounced**: changes are flushed to disk 2 seconds after the last store mutation. A crash or forced Obsidian quit within that window may lose recent changes.
+- The synchronous `onunload` flush is best-effort; there is no guarantee Obsidian waits for the async `writeBinary` to complete before terminating the renderer process. Run **Force reindex vault** or wait a few seconds after your last edit before quitting to maximize durability.
 - Semantic search is brute-force over all embeddings in JavaScript, capped at 10k chunks. Large vaults may freeze briefly.
 - The plugin has no settings UI; Ollama endpoint and timeout are hardcoded (`localhost:11434`, 30s).
 - No sidebar UI yet; all search must go through the console API.
