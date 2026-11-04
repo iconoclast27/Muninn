@@ -96,18 +96,26 @@ export class IntakeLane {
     onMutation?: () => void;
 
     onCreate(path: string): void {
+        // eslint-disable-next-line no-console
+        console.log('[Muninn] lane onCreate:', path);
         this.schedule(path, { kind: 'touch' });
     }
 
     onModify(path: string): void {
+        // eslint-disable-next-line no-console
+        console.log('[Muninn] lane onModify:', path);
         this.schedule(path, { kind: 'touch' });
     }
 
     onDelete(path: string): void {
+        // eslint-disable-next-line no-console
+        console.log('[Muninn] lane onDelete:', path);
         this.schedule(path, { kind: 'delete' });
     }
 
     onRename(oldPath: string, newPath: string): void {
+        // eslint-disable-next-line no-console
+        console.log('[Muninn] lane onRename:', oldPath, '->', newPath);
         // If the new path itself has pending operations, fold them so a
         // delete-after-rename sequence resolves against the final path.
         const destPending = this.pending.get(newPath);
@@ -138,8 +146,12 @@ export class IntakeLane {
         // Fold the new event into the existing pending state for this path.
         const existing = this.pending.get(path);
         if (existing) {
+            // eslint-disable-next-line no-console
+            console.log('[Muninn] lane schedule fold:', path, existing.kind, '+>', op.kind);
             this.pending.set(path, foldState(existing, op));
         } else {
+            // eslint-disable-next-line no-console
+            console.log('[Muninn] lane schedule:', path, op.kind, 'reindexing=', this.reindexing);
             this.pending.set(path, op);
         }
         if (!this.reindexing) {
@@ -250,6 +262,8 @@ export class IntakeLane {
     }
 
     private async applyOp(path: string, op: PathState): Promise<void> {
+        // eslint-disable-next-line no-console
+        console.log('[Muninn] lane applyOp:', path, op.kind);
         switch (op.kind) {
             case 'touch':
                 await this.ingestTouch(path);
@@ -283,6 +297,8 @@ export class IntakeLane {
 
     private async ingestTouch(path: string): Promise<void> {
         const entry = await this.source.readFile(path);
+        // eslint-disable-next-line no-console
+        console.log('[Muninn] lane ingestTouch read:', path, entry ? `${entry.bytes.length} bytes` : 'null');
         if (entry === null) {
             this.store.deleteChunksForPath(path);
             return;
@@ -291,14 +307,18 @@ export class IntakeLane {
         const chunkerStale = this.chunkerCp !== storedCp;
         const watermark = this.store.getFile(path);
         const contentHash = contentSha(entry.bytes);
-        if (!chunkerStale &&
+        const unchanged = !chunkerStale &&
             watermark !== undefined &&
             watermark.size === entry.bytes.length &&
             watermark.mtime === entry.mtime &&
-            watermark.content_hash === contentHash) {
-            // Unchanged per watermark; no work.
+            watermark.content_hash === contentHash;
+        if (unchanged) {
+            // eslint-disable-next-line no-console
+            console.log('[Muninn] lane ingestTouch unchanged:', path);
             return;
         }
+        // eslint-disable-next-line no-console
+        console.log('[Muninn] lane ingestTouch ingesting:', path, 'watermark=', watermark, 'hash=', contentHash);
         await this.ingest(path, entry);
     }
 
@@ -318,6 +338,8 @@ export class IntakeLane {
                 title: c.chain.join(' > '),
             };
         });
+        // eslint-disable-next-line no-console
+        console.log('[Muninn] lane ingest chunks:', path, records.length);
         const tagRecords = this.buildTagRecords(result, records);
         const missingVhs = this.findMissingEmbeddings(records);
         const embedded = await this.embedMissing(missingVhs);
@@ -328,6 +350,8 @@ export class IntakeLane {
                 this.store.insertTags(tagRecords);
             }
         });
+        // eslint-disable-next-line no-console
+        console.log('[Muninn] lane ingest stored:', path, 'chunks=', records.length, 'embedded=', embedded);
         return { chunks: records.length, embedded };
     }
 

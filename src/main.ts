@@ -185,15 +185,23 @@ export default class MuninnPlugin extends Plugin {
 
     private registerVaultHandlers(vault: Vault): void {
         this.registerEvent(vault.on('create', (file: TAbstractFile) => {
+            // eslint-disable-next-line no-console
+            console.log('[Muninn] vault event: create', file.path, file instanceof TFile, (file as TFile).extension);
             if (file instanceof TFile && file.extension === 'md') this.lane!.onCreate(file.path);
         }));
         this.registerEvent(vault.on('modify', (file: TAbstractFile) => {
+            // eslint-disable-next-line no-console
+            console.log('[Muninn] vault event: modify', file.path);
             if (file instanceof TFile && file.extension === 'md') this.lane!.onModify(file.path);
         }));
         this.registerEvent(vault.on('delete', (file: TAbstractFile) => {
+            // eslint-disable-next-line no-console
+            console.log('[Muninn] vault event: delete', file.path);
             if (file instanceof TFile && file.extension === 'md') this.lane!.onDelete(file.path);
         }));
         this.registerEvent(vault.on('rename', (file: TAbstractFile, oldPath: string) => {
+            // eslint-disable-next-line no-console
+            console.log('[Muninn] vault event: rename', oldPath, '->', file.path);
             if (file instanceof TFile && file.extension === 'md') {
                 this.lane!.onRename(oldPath, file.path);
             } else if (file instanceof TFolder) {
