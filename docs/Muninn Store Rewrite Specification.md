@@ -4,6 +4,16 @@
 **Date:** 2026-11-03  
 **Purpose:** Define the index database schema, API surface, and behavioral invariants for Muninn (v0.2, clean start). Supersedes legacy `src/fts/store.ts` and its schema.
 
+```text
+SUPERSESSION NOTE (added 2026-11-04, per Dan's ruling): This spec
+supersedes the store/schema sections of docs/Unified Project Definition
+v0.2 (4-table schema here vs. v0.2's 7-table sketch; path-keyed FTS vs.
+vh-keyed; forceReindex resolved here). The Unified doc governs Plugin 2
+and process doctrine; this doc governs the store. F01 was authored
+against this spec.
+```
+
+
 **Draft v3 amendments (found while authoring F01 against real chunker receipts):**
 1. Rename semantics previously had no doors — `renamePath` and `renamePrefix` added to §4.4.
 2. Delete left a resurrection hole (watermark outliving rows) — §5.4 now purges all three, atomically, with the pairing invariant stated.

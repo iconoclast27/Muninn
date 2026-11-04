@@ -51,7 +51,21 @@ function check(name: string, cond: boolean, detail?: string): void {
     }
 }
 
-function toRecords(path: string, result: ReturnType<typeof chunkNote>) {
+interface ChunkRecord {
+    path: string;
+    ord: number;
+    bs: number;
+    be: number;
+    vh: string;
+    text: string;
+    title: string;
+}
+
+interface Hit {
+    vh: string;
+}
+
+function toRecords(path: string, result: ReturnType<typeof chunkNote>): ChunkRecord[] {
     return result.chunks.map((c) => ({
         path, ord: c.ord, bs: c.bs, be: c.be, vh: c.vh,
         text: '', // filled from bytes below; store must persist it
@@ -59,7 +73,7 @@ function toRecords(path: string, result: ReturnType<typeof chunkNote>) {
     })).map((r, i) => ({
         ...r,
         text: Buffer.from(TEST_BYTES!.subarray(r.bs, r.be)).toString('utf-8'),
-                       title: result.chunks[i].chain.join(' > '),
+        title: result.chunks[i].chain.join(' > '),
     }));
 }
 
@@ -95,9 +109,10 @@ const TEST_BYTES = enc.encode(DOC);
 
 // --- run --------------------------------------------------------------------
 
+async function main(): Promise<void> {
 console.log('[F01] store idempotence & delete/rename integrity');
 
-const store: Store = openStore(':memory:'); // or the WASM equivalent per spec §4.1
+const store: Store = await openStore(':memory:'); // or the WASM equivalent per spec §4.1
 const PATH = 'notes/test-document.md';
 
 // S1 — chunker determinism, end-to-end receipt
@@ -112,10 +127,10 @@ const records = toRecords(PATH, chunkA);
 store.replaceChunksForPath(PATH, records);
 store.recordFile(PATH, TEST_BYTES.length, 1700000000000, 'aaaaaaaaaaaaaaaa');
 const count1 = store.countChunks();
-const fts1 = store.searchText('paragraph').map((h) => h.vh).sort();
+const fts1 = store.searchText('paragraph').map((h: Hit) => h.vh).sort();
 store.replaceChunksForPath(PATH, records); // rescan of unchanged bytes
 const count2 = store.countChunks();
-const fts2 = store.searchText('paragraph').map((h) => h.vh).sort();
+const fts2 = store.searchText('paragraph').map((h: Hit) => h.vh).sort();
 check('S2a replace-twice chunk count stable',
       count1 === count2 && count1 > 0, `${count1} vs ${count2}`);
 check('S2b replace-twice search results identical',
@@ -133,19 +148,19 @@ check('S3c watermark purged on delete',
 store.replaceChunksForPath(PATH, records);
 check('S3d recreated file re-derives rows',
       store.countChunks() === count1 &&
-      JSON.stringify(store.searchText('paragraph').map((h) => h.vh).sort()) ===
+      JSON.stringify(store.searchText('paragraph').map((h: Hit) => h.vh).sort()) ===
       JSON.stringify(fts1));
 
 // S4 — rename integrity
 const vhBefore = new Set(records.map((r) => r.vh));
 store.renamePath(PATH, 'notes/renamed-document.md');
-const renamed = store.query<{ path: string; vh: string }>(
-    'SELECT path, vh FROM chunks');
+interface ChunkRow { path: string; vh: string }
+const renamed = store.query<ChunkRow>('SELECT path, vh FROM chunks');
 check('S4a no rows under old path',
-      renamed.every((r) => r.path === 'notes/renamed-document.md'));
+      renamed.every((r: ChunkRow) => r.path === 'notes/renamed-document.md'));
 check('S4b vh set unchanged by rename',
-      new Set(renamed.map((r) => r.vh)).size === vhBefore.size &&
-      renamed.every((r) => vhBefore.has(r.vh)));
+      new Set(renamed.map((r: ChunkRow) => r.vh)).size === vhBefore.size &&
+      renamed.every((r: ChunkRow) => vhBefore.has(r.vh)));
 check('S4c watermark moved',
       store.getFile('notes/renamed-document.md')?.content_hash === 'aaaaaaaaaaaaaaaa');
 check('S4d old watermark gone',
@@ -175,3 +190,6 @@ console.log(failures === 0
 ? '[F01] VERDICT: GREEN'
 : `[F01] VERDICT: RED — ${failures} failure(s)`);
 process.exit(failures === 0 ? 0 : 1);
+}
+
+main();
