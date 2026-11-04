@@ -124,6 +124,9 @@ export interface Store {
 
     // Diagnostic (read-only, allowlisted)
     query<T>(sql: string, ...params: unknown[]): T[];
+
+    // Persistence API doors
+    serialize(): Uint8Array;
 }
 
 // ---------------------------------------------------------------------------
@@ -265,9 +268,11 @@ function runPreparedReturnCount(db: Database, sql: string, params: BindableValue
 
 class StoreImpl implements Store {
     db: Database;
+    sqlite3: Sqlite3Module;
 
-    constructor(db: Database) {
+    constructor(db: Database, sqlite3: Sqlite3Module) {
         this.db = db;
+        this.sqlite3 = sqlite3;
     }
 
     // -----------------------------------------------------------------------
@@ -689,6 +694,52 @@ class StoreImpl implements Store {
         }
         return rows;
     }
+
+    // -----------------------------------------------------------------------
+    // Persistence API doors
+    // -----------------------------------------------------------------------
+
+    serialize(): Uint8Array {
+        if (this.db.pointer === undefined) {
+            throw new Error('Store.serialize called on closed database');
+        }
+        return this.sqlite3.capi.sqlite3_js_db_export(this.db.pointer, 0);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// SQLite WASM module types (kept minimal; the library types are huge)
+// ---------------------------------------------------------------------------
+
+type WasmPointer = number;
+
+interface Sqlite3CAPI {
+    sqlite3_js_db_export: (db: WasmPointer, schema?: string | WasmPointer) => Uint8Array;
+    sqlite3_deserialize: (
+        db: WasmPointer,
+        schema: string | WasmPointer,
+        data: WasmPointer,
+        dbSize: number,
+        bufferSize: number,
+        flags: number,
+    ) => number;
+    SQLITE_DESERIALIZE_FREEONCLOSE: number;
+    SQLITE_DESERIALIZE_RESIZEABLE: number;
+}
+
+interface Sqlite3Wasm {
+    alloc: (n: number) => WasmPointer;
+    heap8u: () => Uint8Array;
+    dealloc: (p: WasmPointer) => void;
+}
+
+interface Sqlite3Module {
+    capi: Sqlite3CAPI;
+    wasm: Sqlite3Wasm;
+    oo1: {
+        DB: new (path: string, flags: string) => Database;
+    };
+    version: { libVersion: string };
 }
 
 // ---------------------------------------------------------------------------
@@ -696,6 +747,7 @@ class StoreImpl implements Store {
 // ---------------------------------------------------------------------------
 
 let wasmBytes: Uint8Array | null = null;
+let moduleInstance: Sqlite3Module | null = null;
 
 async function getWasmBytes(): Promise<Uint8Array> {
     if (wasmBytes === null) {
@@ -723,16 +775,59 @@ async function getWasmBytes(): Promise<Uint8Array> {
     return wasmBytes;
 }
 
-export async function openStore(path: string): Promise<Store> {
-    const wasmBinary = await getWasmBytes();
-    const sqlite3 = await (sqlite3InitModule as unknown as (cfg?: { wasmBinary?: Uint8Array; locateFile?: () => string }) => Promise<{ oo1: { DB: new (path: string, flags: string) => Database }; version: { libVersion: string } }>)({
-        wasmBinary,
-        locateFile: () => 'sqlite3.wasm',
-    });
+async function getSqlite3Module(): Promise<Sqlite3Module> {
+    if (moduleInstance === null) {
+        const wasmBinary = await getWasmBytes();
+        moduleInstance = await (sqlite3InitModule as unknown as (cfg?: {
+            wasmBinary?: Uint8Array;
+            locateFile?: () => string;
+        }) => Promise<Sqlite3Module>)({
+            wasmBinary,
+            locateFile: () => 'sqlite3.wasm',
+        });
+    }
+    return moduleInstance;
+}
+
+export interface OpenStoreOptions {
+    /** Serialized database bytes to load into the new database. */
+    load?: Uint8Array;
+}
+
+export async function openStore(path: string, opts: OpenStoreOptions = {}): Promise<Store> {
+    const sqlite3 = await getSqlite3Module();
     const db = new sqlite3.oo1.DB(path === ':memory:' ? ':memory:' : path, 'c');
-    const store = new StoreImpl(db);
+
+    if (opts.load !== undefined && opts.load.length > 0) {
+        if (db.pointer === undefined) {
+            db.close();
+            throw new Error('Database pointer unavailable during deserialize');
+        }
+        const ptr = sqlite3.wasm.alloc(opts.load.length);
+        try {
+            sqlite3.wasm.heap8u().set(opts.load, ptr);
+            const rc = sqlite3.capi.sqlite3_deserialize(
+                db.pointer,
+                0,
+                ptr,
+                opts.load.length,
+                opts.load.length,
+                sqlite3.capi.SQLITE_DESERIALIZE_FREEONCLOSE | sqlite3.capi.SQLITE_DESERIALIZE_RESIZEABLE,
+            );
+            if (rc !== 0) {
+                throw new Error(`sqlite3_deserialize failed with code ${rc}`);
+            }
+        } catch (e) {
+            sqlite3.wasm.dealloc(ptr);
+            db.close();
+            throw e;
+        }
+    }
+
+    const store = new StoreImpl(db, sqlite3);
     store.initPragmas();
     store.initSchema();
     store.setMeta('sqlite_version', sqlite3.version.libVersion);
     return store;
 }
+

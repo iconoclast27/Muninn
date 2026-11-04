@@ -20,6 +20,7 @@ against this spec.
 3. Per-row `cp` was vestigial spine furniture — dropped from the schema; `chunker_epoch` in meta is the sole authority (§2.4, §3).
 4. WASM sqlite lacks better-sqlite3's automatic `.all()`-throws-on-mutation guard — §4.8 `query()` gets an explicit first-keyword allowlist.
 5. **FTS5 virtual-table rename:** `UPDATE chunk_fts SET path = ...` is not reliable when the table has multiple `UNINDEXED` columns (§3, §5.3). Implementation renames the underlying `chunks`/`files` rows, then rebuilds affected FTS rows via `DELETE ... + INSERT ... SELECT ... FROM chunks`. The visible behavior — no re-chunk, no re-embed, identical content under the new path — remains unchanged.
+6. **Persistence seam:** §4.1 `open()` now accepts `{ load?: Uint8Array }` and a `serialize()` API door returns the full database bytes. The runtime DB is `:memory:`; durability is provided by importing/exporting bytes through an external storage adapter (e.g. Obsidian `Vault.adapter`). WAL pragmas remain for compatibility but are inert on `:memory:`.
 
 ---
 
@@ -30,7 +31,7 @@ against this spec.
 wasmBinary: <embedded bytes>,
 locateFile: () => 'sqlite3.wasm'  // short-circuits new URL(import.meta.url) CJS crash
 ```
-DB flags **'c'** only, never **'ct'** (no threads, no worker). Zone 2 disposability holds: `cache/index.db` is disposable, rebuildable per device.
+DB flags **'c'** only, never **'ct'** (no threads, no worker). The runtime database is opened on `:memory:` and hydrated from a byte snapshot exported by `serialize()` / `sqlite3_js_db_export`. Zone 2 disposability holds: the persisted `cache/index.db` bytes are disposable and rebuildable per device.
 
 ---
 
@@ -135,9 +136,16 @@ All mutations go through **named methods**. `query()` is read-only, policed by a
 ### 4.1 Lifecycle
 
 ```typescript
-open(): void   // pragmas WAL + NORMAL, busy_timeout 5000, DDL if missing, meta init
+open(path: string, opts?: { load?: Uint8Array }): Promise<Store>
+serialize(): Uint8Array
 close(): void  // idempotent
 ```
+
+`open()` creates or opens the database at `path`. When `opts.load` is provided, the serialized database bytes are deserialized into the new connection before schema initialization. This is the persistence seam: the runtime database is opened from a byte snapshot exported by `serialize()` and flushed through an external storage layer (e.g. Obsidian's `Vault.adapter`).
+
+`serialize()` exports the full database as a `Uint8Array` via SQLite WASM `sqlite3_js_db_export`. The returned bytes are the authoritative snapshot to persist.
+
+`close()` is idempotent and releases the connection. Callers must arrange for any pending `serialize()` / flush to complete before `close()` if durability is required.
 
 ### 4.2 Meta
 
@@ -337,9 +345,10 @@ Decided in-draft: lazy embedding retention (§5.4.1); `forceReindex` progress ca
 2. **`src/store/store.ts`** against this spec
 3. **`src/api.ts`** — frozen surface, dark-safe wrappers
 4. **`src/intake/lane.ts`** — intake lane
-5. Additional fixtures as modules land (rename-without-re-embed, fallback-mode search, reindex atomicity, tag vocabulary)
-6. **End-to-end Desktop smoke test** — install `main.js` + `manifest.json` in a test vault, verify load, manual reindex, and search
-7. **Release for testing** — tag and attach build artifacts
+5. Additional fixtures as modules land (rename-without-re-embed, fallback-mode search, reindex atomicity, tag vocabulary, serialize/deserialize round-trip)
+6. **Persistence seam in Obsidian** — `Vault.adapter.readBinary`/`writeBinary` wiring into `src/main.ts` using `openStore(..., { load })` and `store.serialize()`
+7. **End-to-end Desktop smoke test** — install `main.js` + `manifest.json` in a test vault, verify load, persistence round-trip, manual reindex, and search
+8. **Release for testing** — tag and attach build artifacts
 
 ---
 
