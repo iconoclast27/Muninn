@@ -36,9 +36,15 @@ export default class MuninnPlugin extends Plugin {
             this.store = await openStore(cachePath);
         } catch (e) {
             // eslint-disable-next-line no-console
-            console.error('[Muninn] failed to open store:', e);
-            this.store = null;
-            return;
+            console.error('[Muninn] failed to open store on disk, falling back to in-memory:', e);
+            try {
+                this.store = await openStore(':memory:');
+            } catch (e2) {
+                // eslint-disable-next-line no-console
+                console.error('[Muninn] failed to open in-memory store:', e2);
+                this.store = null;
+                return;
+            }
         }
 
         const embedClient = new OllamaEmbedClient();
