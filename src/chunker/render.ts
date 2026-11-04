@@ -48,7 +48,7 @@
 // Node note: node:crypto, erasable TS, .ts import extensions.
 // =============================================================================
 
-import { createHash } from 'node:crypto';
+import { createHash } from 'crypto';
 
 export type TaskPrefix = 'search_document:' | 'search_query:';
 

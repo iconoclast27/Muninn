@@ -604,8 +604,8 @@ async function getWasmBytes(): Promise<Uint8Array> {
             const wasmModule: { default: string } = await import('@sqlite.org/sqlite-wasm/sqlite3.wasm' as string);
             wasmBytes = b64ToBytes(wasmModule.default);
         } catch {
-            const { readFileSync } = await import('node:fs');
-            const { resolve } = await import('node:path');
+            const { readFileSync } = await import('fs');
+            const { resolve } = await import('path');
             const wasmPath = resolve(
                 process.cwd(),
                 'node_modules/@sqlite.org/sqlite-wasm/dist/sqlite3.wasm',
