@@ -1,6 +1,6 @@
-# Muninn v0.2.0-test.2 — Manual Testing Scenario
+# Muninn v0.2.0-test.4 — Manual Testing Scenario
 
-Use this document to smoke-test the Plugin 1 build in Obsidian with the developer console open. Install the plugin via BRAT from the GitHub release tag `0.2.0-test.2`.
+Use this document to smoke-test the Plugin 1 build in Obsidian with the developer console open. Install the plugin via BRAT from the GitHub release tag `0.2.0-test.4`.
 
 ## Environment
 
@@ -13,7 +13,7 @@ Use this document to smoke-test the Plugin 1 build in Obsidian with the develope
 
 1. Install and enable the BRAT plugin in the test vault if not already present.
 2. In BRAT, choose **Add Beta Plugin** and enter: `iconoclast27/Muninn`.
-3. BRAT should fetch the release for tag `0.2.0-test.2`. If it offers a version picker, select `0.2.0-test.2`.
+3. BRAT should fetch the release for tag `0.2.0-test.4`. If it offers a version picker, select `0.2.0-test.4`.
 4. Enable **Muninn** in Community Plugins.
 5. Keep the console open.
 
@@ -32,7 +32,10 @@ Use this document to smoke-test the Plugin 1 build in Obsidian with the develope
 - No uncaught exception in the console on load.
 - The SQLite store is now an in-memory database (`:memory:`) that is loaded from and flushed to `.obsidian/plugins/muninn/cache/index.db` bytes via `Vault.adapter.readBinary` / `writeBinary`.
 - A log line may appear: `[Muninn] no existing cache to load:` — expected on the very first enable (no cache file yet), but not on subsequent loads.
-- A log line may appear: `[Muninn] initial reindex failed:` **only if** Ollama is absent; otherwise the initial background reindex should start silently.
+- A log line may appear: `[Muninn] cache file found at ...:` with a byte count — expected on subsequent loads when the cache exists.
+- A log line may appear: `[Muninn] loaded cache: N files, M chunks` — expected when a cache was successfully imported.
+- A log line may appear: `[Muninn] initial walk complete:` with the walk result once the background reindex finishes.
+- A log line may appear: `[Muninn] initial reindex failed:` **only if** Ollama is absent or the walk crashes; otherwise the initial background reindex should log success.
 - The command palette shows **Muninn: Force reindex vault**.
 - The file `.obsidian/plugins/muninn/cache/index.db` is created on disk after the first successful flush (within a few seconds of the initial reindex completing or after running **Force reindex vault**).
 
@@ -49,6 +52,7 @@ Use this document to smoke-test the Plugin 1 build in Obsidian with the develope
 
 ### Expected results
 - No exception in the console.
+- A log line appears: `[Muninn] force reindex complete:` with the result object (`files`, `chunks`, `embedded`, `durationMs`).
 - If Ollama is running: embedding requests are sent to `localhost:11434/api/embed` and a successful reindex completes.
 - If Ollama is absent or returns an error: the console logs a warning (`[Muninn] Ollama embed timed out` or `[Muninn] Ollama embed failed:`) and the plugin remains enabled; no uncaught exception.
 - The cache database file does not grow unboundedly; after reindex it should reflect the number of chunks in the vault.
@@ -192,9 +196,10 @@ This is a new event-test note for Muninn.
 4. Run the same search before any reindex.
 
 ### Expected results
+- A log line appears on load: `[Muninn] cache file found at ...:` followed by `[Muninn] loaded cache: N files, M chunks`.
 - The same search returns the same results without requiring a reindex.
 - The cache file `.obsidian/plugins/muninn/cache/index.db` is present on disk and was imported on load via `Vault.adapter.readBinary`.
-- No full reindex is triggered automatically on relaunch beyond the initial background walk (which should be a no-op for unchanged files).
+- A few `POST /api/embed` requests may still appear (e.g., from a homepage note that Obsidian re-opens and modifies on startup); these should not be hundreds of requests.
 
 ## Scenario J — Ollama dark-safe behavior
 

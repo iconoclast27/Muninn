@@ -100,6 +100,7 @@ export interface Store {
     replaceChunksForPath(path: string, records: ChunkRecord[]): number;
     deleteChunksForPath(path: string): { chunks: number; ftsRows: number };
     countChunks(): number;
+    countFiles(): number;
     renamePath(oldPath: string, newPath: string): number;
     renamePrefix(fromFolder: string, toFolder: string): number;
 
@@ -408,6 +409,13 @@ class StoreImpl implements Store {
 
     countChunks(): number {
         const s = this.db.prepare('SELECT COUNT(*) FROM chunks');
+        const row = s.step() ? s.get([]) : null;
+        s.finalize();
+        return row ? Number(row[0]) : 0;
+    }
+
+    countFiles(): number {
+        const s = this.db.prepare('SELECT COUNT(*) FROM files');
         const row = s.step() ? s.get([]) : null;
         s.finalize();
         return row ? Number(row[0]) : 0;

@@ -39,9 +39,13 @@ export default class MuninnPlugin extends Plugin {
         }
 
         let loadBytes: Uint8Array | undefined;
+        let cacheExists = false;
         try {
             const raw = await this.app.vault.adapter.readBinary(normalizePath(cachePath));
             loadBytes = raw instanceof Uint8Array ? raw : new Uint8Array(raw);
+            cacheExists = true;
+            // eslint-disable-next-line no-console
+            console.log(`[Muninn] cache file found at ${cachePath}: ${loadBytes.length} bytes`);
         } catch (e) {
             // eslint-disable-next-line no-console
             console.log('[Muninn] no existing cache to load:', (e as Error).message);
@@ -49,6 +53,12 @@ export default class MuninnPlugin extends Plugin {
 
         try {
             this.store = await openStore(':memory:', loadBytes !== undefined && loadBytes.length > 0 ? { load: loadBytes } : {});
+            if (cacheExists) {
+                const files = this.store.countFiles();
+                const chunks = this.store.countChunks();
+                // eslint-disable-next-line no-console
+                console.log(`[Muninn] loaded cache: ${files} files, ${chunks} chunks`);
+            }
         } catch (e) {
             // eslint-disable-next-line no-console
             console.error('[Muninn] failed to open in-memory store:', e);
@@ -71,10 +81,14 @@ export default class MuninnPlugin extends Plugin {
             this.registerVaultHandlers(this.app.vault);
             // Initial background walk.
             this.lane.forceReindex()
-                .then(() => this.flushCache().catch((flushErr: unknown) => {
+                .then((result) => {
                     // eslint-disable-next-line no-console
-                    console.error('[Muninn] initial reindex flush failed:', flushErr);
-                }))
+                    console.log('[Muninn] initial walk complete:', result);
+                    return this.flushCache().catch((flushErr: unknown) => {
+                        // eslint-disable-next-line no-console
+                        console.error('[Muninn] initial reindex flush failed:', flushErr);
+                    });
+                })
                 .catch((e: unknown) => {
                     // eslint-disable-next-line no-console
                     console.error('[Muninn] initial reindex failed:', e);
@@ -86,10 +100,14 @@ export default class MuninnPlugin extends Plugin {
             name: 'Force reindex vault',
             callback: () => {
                 this.api?.forceReindex()
-                    .then(() => this.flushCache().catch((flushErr: unknown) => {
+                    .then((result) => {
                         // eslint-disable-next-line no-console
-                        console.error('[Muninn] force reindex flush failed:', flushErr);
-                    }))
+                        console.log('[Muninn] force reindex complete:', result);
+                        return this.flushCache().catch((flushErr: unknown) => {
+                            // eslint-disable-next-line no-console
+                            console.error('[Muninn] force reindex flush failed:', flushErr);
+                        });
+                    })
                     .catch((e: unknown) => {
                         // eslint-disable-next-line no-console
                         console.error('[Muninn] force reindex command failed:', e);
@@ -157,7 +175,12 @@ export default class MuninnPlugin extends Plugin {
     private async flushCache(): Promise<void> {
         if (this.store === null || this.cachePath === null) return;
         const bytes = this.store.serialize();
-        await this.app.vault.adapter.writeBinary(normalizePath(this.cachePath), bytes.buffer as ArrayBuffer);
+        // serialize() returns a Uint8Array view into the WASM heap. Copy the
+        // exact serialized bytes into a clean ArrayBuffer before handing it
+        // to Vault.adapter, otherwise we write the whole heap.
+        const buffer = new ArrayBuffer(bytes.length);
+        new Uint8Array(buffer).set(bytes);
+        await this.app.vault.adapter.writeBinary(normalizePath(this.cachePath), buffer);
     }
 
     private registerVaultHandlers(vault: Vault): void {
