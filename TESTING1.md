@@ -1,6 +1,6 @@
-# Muninn v0.2.0-test.1 — Manual Testing Scenario
+# Muninn v0.2.0-test.2 — Manual Testing Scenario
 
-Use this document to smoke-test the Plugin 1 build in Obsidian with the developer console open. Install the plugin via BRAT from the GitHub release tag `0.2.0-test.1`.
+Use this document to smoke-test the Plugin 1 build in Obsidian with the developer console open. Install the plugin via BRAT from the GitHub release tag `0.2.0-test.2`.
 
 ## Environment
 
@@ -13,7 +13,7 @@ Use this document to smoke-test the Plugin 1 build in Obsidian with the develope
 
 1. Install and enable the BRAT plugin in the test vault if not already present.
 2. In BRAT, choose **Add Beta Plugin** and enter: `iconoclast27/Muninn`.
-3. BRAT should fetch the release for tag `0.2.0-test.1`. If it offers a version picker, select `0.2.0-test.1`.
+3. BRAT should fetch the release for tag `0.2.0-test.2`. If it offers a version picker, select `0.2.0-test.2`.
 4. Enable **Muninn** in Community Plugins.
 5. Keep the console open.
 
