@@ -48,10 +48,21 @@ export interface SearchResult {
     text: string;
 }
 
+export interface TagInfo {
+    tag: string;
+    files: number;
+    chunks: number;
+}
+
 export interface FileWatermark {
     size: number;
     mtime: number;
     content_hash: string;
+}
+
+export interface TagRecord {
+    vh: string;
+    tags: string[];
 }
 
 // ---------------------------------------------------------------------------
@@ -97,6 +108,11 @@ export interface Store {
     deleteEmbeddingsForVh(vh: string): void;
     getEmbedding(vh: string): EmbeddingRecord | undefined;
     countEmbeddings(): number;
+
+    // Tags
+    insertTags(records: TagRecord[]): number;
+    getTags(vh: string): string[] | undefined;
+    tagVocabulary(): TagInfo[];
 
     // FTS5
     searchText(query: string): SearchResult[];
@@ -146,6 +162,12 @@ CREATE TABLE IF NOT EXISTS embeddings (
 CREATE TABLE IF NOT EXISTS meta (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS tags (
+    vh TEXT PRIMARY KEY,
+    tags TEXT NOT NULL,
+    FOREIGN KEY (vh) REFERENCES embeddings(vh)
 );
 
 CREATE VIRTUAL TABLE IF NOT EXISTS chunk_fts USING fts5(
@@ -491,6 +513,69 @@ class StoreImpl implements Store {
         const row = s.step() ? s.get([]) : null;
         s.finalize();
         return row ? Number(row[0]) : 0;
+    }
+
+    // -----------------------------------------------------------------------
+    // Tags API doors
+    // -----------------------------------------------------------------------
+
+    insertTags(records: TagRecord[]): number {
+        let inserted = 0;
+        const stmt = this.db.prepare(
+            'INSERT OR REPLACE INTO tags(vh, tags) VALUES (?, ?)',
+        );
+        try {
+            for (const r of records) {
+                const canonical = [...new Set(r.tags)].sort();
+                stmt.bind([r.vh, JSON.stringify(canonical)]);
+                while (stmt.step()) { /* no-op */ }
+                stmt.reset();
+                stmt.clearBindings();
+                inserted++;
+            }
+        } finally {
+            stmt.finalize();
+        }
+        return inserted;
+    }
+
+    getTags(vh: string): string[] | undefined {
+        const s = this.db.prepare('SELECT tags FROM tags WHERE vh = ?');
+        s.bind([vh]);
+        const row = s.step() ? s.get([]) : null;
+        s.finalize();
+        if (!row) return undefined;
+        try {
+            return JSON.parse(String(row[0])) as string[];
+        } catch {
+            return undefined;
+        }
+    }
+
+    tagVocabulary(): TagInfo[] {
+        const sql = `
+            SELECT json_each.value AS tag, COUNT(DISTINCT c.path) AS files, COUNT(*) AS chunks
+            FROM chunks c
+            JOIN tags t ON c.vh = t.vh
+            CROSS JOIN json_each(t.tags)
+            GROUP BY json_each.value
+            ORDER BY tag
+        `;
+        const s = this.db.prepare(sql);
+        const rows: TagInfo[] = [];
+        try {
+            while (s.step()) {
+                const r = s.get([]);
+                rows.push({
+                    tag: String(r[0]),
+                    files: Number(r[1]),
+                    chunks: Number(r[2]),
+                });
+            }
+        } finally {
+            s.finalize();
+        }
+        return rows;
     }
 
     // -----------------------------------------------------------------------

@@ -188,10 +188,7 @@ export function createMuninnApi(
         },
 
         tagVocabulary(): { tags: TagInfo[] } | null {
-            // Tags live in fm_context, which is not stored per row in the
-            // current schema. We cannot reconstruct a tag vocabulary from
-            // the database alone. Return empty rather than fake data.
-            return { tags: [] };
+            return { tags: store.tagVocabulary() };
         },
 
         async forceReindex(onProgress?: (p: ReindexProgress) => void): Promise<ReindexResult | null> {

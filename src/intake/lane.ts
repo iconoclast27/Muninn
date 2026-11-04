@@ -15,6 +15,7 @@ import type {
     Store,
     ChunkRecord,
     EmbeddingRecord,
+    TagRecord,
     FileWatermark,
 } from '../store/store.ts';
 import type { EmbedClient } from '../api.ts';
@@ -265,13 +266,32 @@ export class IntakeLane {
                 title: c.chain.join(' > '),
             };
         });
+        const tagRecords = this.buildTagRecords(result, records);
         const missingVhs = this.findMissingEmbeddings(records);
         const embedded = await this.embedMissing(missingVhs);
         await this.store.transaction(() => {
             this.store.replaceChunksForPath(path, records);
             this.store.recordFile(path, entry.bytes.length, entry.mtime, contentSha(entry.bytes));
+            if (tagRecords.length > 0) {
+                this.store.insertTags(tagRecords);
+            }
         });
         return { chunks: records.length, embedded };
+    }
+
+    private buildTagRecords(result: ReturnType<typeof chunkNote>, records: ChunkRecord[]): TagRecord[] {
+        if (result.fm === null) return [];
+        const rawTags = result.fm.tags;
+        if (rawTags === undefined || (Array.isArray(rawTags) && rawTags.length === 0)) return [];
+        const tags = Array.isArray(rawTags) ? rawTags : [rawTags];
+        const seen = new Set<string>();
+        const out: TagRecord[] = [];
+        for (const r of records) {
+            if (seen.has(r.vh)) continue;
+            seen.add(r.vh);
+            out.push({ vh: r.vh, tags });
+        }
+        return out;
     }
 
     private async embedMissing(missing: Array<{ vh: string; text: string }>): Promise<number> {
