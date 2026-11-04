@@ -104,7 +104,7 @@ export interface Store {
     deleteRowsForPath(path: string): number;
 
     // Transactions
-    transaction<T>(fn: () => T): T;
+    transaction<T>(fn: () => T | Promise<T>): Promise<T>;
 
     // Diagnostic (read-only, allowlisted)
     query<T>(sql: string, ...params: unknown[]): T[];
@@ -182,6 +182,25 @@ function firstSqlKeyword(sql: string): string {
     return sql.trim().split(/\s+/)[0]?.toUpperCase() ?? '';
 }
 
+/** Quote an FTS5 token so it is matched literally. */
+function escapeFts5Token(token: string): string {
+    return `"${token.replace(/"/g, '""')}"`;
+}
+
+/** Build a safe FTS5 MATCH expression: tokens are literal, joined with implicit AND. */
+function buildFts5Query(query: string): string {
+    return query.trim()
+        .split(/\s+/)
+        .filter((t) => t.length > 0)
+        .map(escapeFts5Token)
+        .join(' ');
+}
+
+/** Escape special LIKE wildcard characters and the chosen escape char. */
+function escapeLikePattern(raw: string): string {
+    return raw.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
+}
+
 function ensureReadOnly(sql: string): void {
     const kw = firstSqlKeyword(sql);
     if (kw === '--') {
@@ -189,6 +208,11 @@ function ensureReadOnly(sql: string): void {
     }
     if (kw !== 'SELECT' && kw !== 'WITH') {
         throw new ReadOnlyDoorViolation(kw);
+    }
+    // Multi-statement strings can bypass the keyword check (e.g. "SELECT 1; DROP TABLE t").
+    // The diagnostic door is single-statement only.
+    if (sql.includes(';')) {
+        throw new ReadOnlyDoorViolation('semicolon');
     }
 }
 
@@ -350,12 +374,8 @@ class StoreImpl implements Store {
     }
 
     private deleteChunksAndFtsForPath(path: string): { chunks: number; ftsRows: number } {
-        const chunksBefore = this.countChunks();
-        runPrepared(this.db, 'DELETE FROM chunks WHERE path = ?', [path]);
-        const chunksDeleted = chunksBefore - this.countChunks();
-        const ftsBefore = this.countFtsRows();
-        runPrepared(this.db, 'DELETE FROM chunk_fts WHERE path = ?', [path]);
-        const ftsDeleted = ftsBefore - this.countFtsRows();
+        const chunksDeleted = runPreparedReturnCount(this.db, 'DELETE FROM chunks WHERE path = ?', [path]);
+        const ftsDeleted = runPreparedReturnCount(this.db, 'DELETE FROM chunk_fts WHERE path = ?', [path]);
         return { chunks: chunksDeleted, ftsRows: ftsDeleted };
     }
 
@@ -483,6 +503,10 @@ class StoreImpl implements Store {
         if (query.length === 2) {
             return this.searchScan(query);
         }
+        const safeQuery = buildFts5Query(query);
+        if (safeQuery.length === 0) {
+            return [];
+        }
         const sql = `
             SELECT vh, path, ord, bs, be, title, text
             FROM chunk_fts
@@ -492,7 +516,7 @@ class StoreImpl implements Store {
         const s = this.db.prepare(sql);
         const rows: SearchResult[] = [];
         try {
-            s.bind([query]);
+            s.bind([safeQuery]);
             while (s.step()) {
                 const r = s.get([]);
                 rows.push({
@@ -515,13 +539,14 @@ class StoreImpl implements Store {
         const sql = `
             SELECT vh, path, ord, bs, be, title, text
             FROM chunk_fts
-            WHERE text LIKE ?
+            WHERE text LIKE ? ESCAPE '\\'
             LIMIT 100
         `;
         const s = this.db.prepare(sql);
         const rows: SearchResult[] = [];
         try {
-            s.bind([`%${query}%`]);
+            const escaped = escapeLikePattern(query);
+            s.bind([`%${escaped}%`]);
             while (s.step()) {
                 const r = s.get([]);
                 rows.push({
@@ -541,26 +566,17 @@ class StoreImpl implements Store {
     }
 
     deleteRowsForPath(path: string): number {
-        const before = this.countFtsRows();
-        runPrepared(this.db, 'DELETE FROM chunk_fts WHERE path = ?', [path]);
-        return before - this.countFtsRows();
-    }
-
-    private countFtsRows(): number {
-        const s = this.db.prepare('SELECT COUNT(*) FROM chunk_fts');
-        const row = s.step() ? s.get([]) : null;
-        s.finalize();
-        return row ? Number(row[0]) : 0;
+        return runPreparedReturnCount(this.db, 'DELETE FROM chunk_fts WHERE path = ?', [path]);
     }
 
     // -----------------------------------------------------------------------
     // Transactions
     // -----------------------------------------------------------------------
 
-    transaction<T>(fn: () => T): T {
+    async transaction<T>(fn: () => T | Promise<T>): Promise<T> {
         this.db.exec('BEGIN');
         try {
-            const result = fn();
+            const result = await fn();
             this.db.exec('COMMIT');
             return result;
         } catch (e) {

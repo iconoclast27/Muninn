@@ -175,6 +175,7 @@ for (const bad of [
      `INSERT INTO files VALUES ('x', 0, 0, 'x')`,
      `DROP TABLE chunks`,
      `-- comment then UPDATE chunks SET path = 'x'`,
+     `SELECT 1; DROP TABLE chunks`,
 ]) {
     let threw = false;
     let verb = '';

@@ -7,12 +7,13 @@
 // versions.json live alongside it in the plugin folder.
 // =============================================================================
 
-import { Plugin, type Vault, type TAbstractFile, type TFile } from 'obsidian';
+import { Plugin, normalizePath, type Vault, type TAbstractFile, type TFile } from 'obsidian';
 import { openStore } from './store/store.ts';
 import type { Store, EmbeddingRecord } from './store/store.ts';
 import { IntakeLane, type FileSource, type FileEntry } from './intake/lane.ts';
 import { createMuninnApi, laneReindexer, type MuninnApi, type EmbedClient } from './api.ts';
 import { renderEmbedInput, embedVh } from './chunker/render.ts';
+import { CHUNKER_CP } from './chunker/chunker.ts';
 
 const MODEL_TAG = 'ollama/nomic-embed-text:v1.5';
 const DIM = 768;
@@ -24,27 +25,50 @@ export default class MuninnPlugin extends Plugin {
 
     async onload(): Promise<void> {
         const cachePath = this.getCachePath();
-        this.store = await openStore(cachePath);
-        this.lane = this.createLane(this.app.vault);
+        const cacheDir = cachePath.substring(0, cachePath.lastIndexOf('/'));
+        try {
+            await this.app.vault.adapter.mkdir(normalizePath(cacheDir));
+        } catch {
+            // Directory may already exist; ignore.
+        }
+
+        try {
+            this.store = await openStore(cachePath);
+        } catch (e) {
+            // eslint-disable-next-line no-console
+            console.error('[Muninn] failed to open store:', e);
+            this.store = null;
+            return;
+        }
+
+        const embedClient = new OllamaEmbedClient();
+        this.lane = this.createLane(this.app.vault, embedClient);
         this.api = createMuninnApi(
             this.store,
-            new OllamaEmbedClient(),
+            embedClient,
             laneReindexer(this.lane),
         );
 
         // Register vault event handlers inside onLayoutReady so we skip the
         // initial create storm for every existing file.
         this.app.workspace.onLayoutReady(() => {
+            if (!this.lane || !this.api) return;
             this.registerVaultHandlers(this.app.vault);
             // Initial background walk.
-            this.lane!.forceReindex().catch(() => { /* dark-safe */ });
+            this.lane.forceReindex().catch((e: unknown) => {
+                // eslint-disable-next-line no-console
+                console.error('[Muninn] initial reindex failed:', e);
+            });
         });
 
         this.addCommand({
             id: 'force-reindex',
             name: 'Force reindex vault',
             callback: () => {
-                this.api?.forceReindex().catch(() => { /* dark-safe */ });
+                this.api?.forceReindex().catch((e: unknown) => {
+                    // eslint-disable-next-line no-console
+                    console.error('[Muninn] force reindex command failed:', e);
+                });
             },
         });
     }
@@ -67,14 +91,14 @@ export default class MuninnPlugin extends Plugin {
         return `${this.app.vault.configDir}/plugins/${this.manifest.id}/cache/index.db`;
     }
 
-    private createLane(vault: Vault): IntakeLane {
+    private createLane(vault: Vault, embedClient: EmbedClient): IntakeLane {
         return new IntakeLane({
             store: this.store!,
             source: new ObsidianFileSource(vault),
-            embedClient: new OllamaEmbedClient(),
+            embedClient,
             modelTag: MODEL_TAG,
             epoch: 1,
-            chunkerCp: Number(this.store!.getMeta('chunker_epoch') ?? '2'),
+            chunkerCp: CHUNKER_CP,
         });
     }
 
@@ -118,8 +142,9 @@ class ObsidianFileSource implements FileSource {
         const file = this.vault.getAbstractFileByPath(path);
         if (file === null || !isMarkdownFile(file)) return null;
         const bytes = new Uint8Array(await this.vault.readBinary(file));
-        // Use stat mtime when available; otherwise fall back to current time.
-        const mtime = Number(file.stat?.mtime ?? Date.now());
+        // Use stat mtime when available; otherwise fall back to 0 so the
+        // stable content_hash drives change detection.
+        const mtime = Number(file.stat?.mtime ?? 0);
         return { path, bytes, mtime };
     }
 }

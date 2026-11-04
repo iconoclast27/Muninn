@@ -9,7 +9,7 @@
 // drive it without Obsidian APIs.
 // =============================================================================
 
-import { chunkNote } from '../chunker/chunker.ts';
+import { chunkNote, CHUNKER_CP } from '../chunker/chunker.ts';
 import { contentSha, renderEmbedInput, embedVh } from '../chunker/render.ts';
 import type {
     Store,
@@ -147,7 +147,7 @@ export class IntakeLane {
             const stalePaths = this.store.query<[string]>('SELECT DISTINCT path FROM chunks')
                 .map((r) => r[0])
                 .filter((p) => !currentPaths.has(p));
-            this.store.transaction(() => {
+            await this.store.transaction(async () => {
                 for (const path of stalePaths) {
                     this.store.deleteChunksForPath(path);
                 }
@@ -169,11 +169,13 @@ export class IntakeLane {
                 totalEmbedded += embedded;
                 if (onProgress) {
                     onProgress({ phase: 'walk', done: walked, total: paths.length });
+                    onProgress({ phase: 'embed', done: walked, total: paths.length });
                 }
             }
             if (onProgress) {
-                onProgress({ phase: 'embed', done: totalEmbedded, total: totalEmbedded });
+                onProgress({ phase: 'embed', done: paths.length, total: paths.length });
             }
+            this.store.setMeta('chunker_epoch', String(this.chunkerCp));
             return {
                 files: walked,
                 chunks: totalChunks,
@@ -199,7 +201,10 @@ export class IntakeLane {
     private applyOp(path: string, op: IntakeOp): void {
         switch (op.kind) {
             case 'touch':
-                this.ingestTouch(path).catch(() => { /* dark-safe: ignore */ });
+                this.ingestTouch(path).catch((e: unknown) => {
+                    // eslint-disable-next-line no-console
+                    console.error(`[Muninn] intake error for ${path}:`, e);
+                });
                 break;
             case 'delete':
                 this.store.deleteChunksForPath(path);
@@ -216,9 +221,12 @@ export class IntakeLane {
             this.store.deleteChunksForPath(path);
             return;
         }
+        const storedCp = Number(this.store.getMeta('chunker_epoch') ?? String(CHUNKER_CP));
+        const chunkerStale = this.chunkerCp !== storedCp;
         const watermark = this.store.getFile(path);
         const contentHash = contentSha(entry.bytes);
-        if (watermark !== undefined &&
+        if (!chunkerStale &&
+            watermark !== undefined &&
             watermark.size === entry.bytes.length &&
             watermark.mtime === entry.mtime &&
             watermark.content_hash === contentHash) {
@@ -244,7 +252,7 @@ export class IntakeLane {
         });
         const missingVhs = this.findMissingEmbeddings(records);
         const embedded = await this.embedMissing(missingVhs);
-        this.store.transaction(() => {
+        await this.store.transaction(() => {
             this.store.replaceChunksForPath(path, records);
             this.store.recordFile(path, entry.bytes.length, entry.mtime, contentSha(entry.bytes));
         });

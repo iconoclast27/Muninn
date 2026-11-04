@@ -227,11 +227,14 @@ export interface EmbedClient {
 // ---------------------------------------------------------------------------
 
 
+const SEMANTIC_SEARCH_HARD_CAP = 10000;
+
 function findSemanticNeighbors(store: Store, queryVh: string, k: number): SearchResult[] {
     // Without a vector distance operator in SQLite, semantic search is
     // brute-force over embeddings joined to chunks. This is intentionally
     // simple: correctness first, acceleration later (epoch bump if we add
-    // an ANN index).
+    // an ANN index). A hard cap limits the worst-case CPU/RAM cost in the
+    // main thread; larger vaults need an ANN extension.
     const query = store.getEmbedding(queryVh);
     if (query === undefined) {
         return [];
@@ -240,7 +243,9 @@ function findSemanticNeighbors(store: Store, queryVh: string, k: number): Search
     const candidates = store.query<[string, string, number, number, number, string, string, Uint8Array, number]>(
         `SELECT c.path, c.vh, c.ord, c.bs, c.be, c.title, c.text, e.vector, e.dim
          FROM chunks c
-         JOIN embeddings e ON c.vh = e.vh`,
+         JOIN embeddings e ON c.vh = e.vh
+         LIMIT ?`,
+        SEMANTIC_SEARCH_HARD_CAP,
     );
     const scored = candidates.map((r): [SearchResult, number] => {
         const rec: SearchResult = {
