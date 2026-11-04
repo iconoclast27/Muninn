@@ -244,7 +244,7 @@ Single path (`renamePath`):
 4. `INSERT INTO chunk_fts(text,title,path,ord,bs,be,vh) SELECT ... FROM chunks WHERE path = ?`
 5. No re-chunk, no re-embed — `vh` is path-independent by construction (chunker takes only bytes; C06's certified premise)
 
-Subtree (`renamePrefix`): same statements, boundary-matched with the prefix + `'/'` discipline — `Area/` never captures `Area 2/` (legacy `asPrefix`/`reAddress` semantics). The old-path set is captured first so each moved path can be rebuilt in FTS. A file at `old/note.md` before and `new/note.md` after must show identical chunk rows except `path`. Returns count of moved paths.
+Subtree (`renamePrefix`): `UPDATE chunks ...` and `UPDATE files ...` use boundary-matched prefix + `'/'` — `Area/` never captures `Area 2/` (legacy `asPrefix`/`reAddress` semantics). FTS5 rows are deleted by exact `path` (LIKE on `UNINDEXED` columns is unreliable in FTS5), then rebuilt by inserting from the updated `chunks` rows for each moved path. A file at `old/note.md` before and `new/note.md` after must show identical chunk rows except `path`. Returns count of moved paths.
 
 ### 5.4 Deletion Semantics
 

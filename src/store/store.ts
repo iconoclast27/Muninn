@@ -446,9 +446,12 @@ class StoreImpl implements Store {
             'UPDATE files SET path = ? || substr(path, ?) WHERE path LIKE ?',
             [newPrefix, oldPrefix.length + 1, pattern],
         );
-        runPrepared(this.db,
-            'DELETE FROM chunk_fts WHERE path LIKE ?', [pattern],
-        );
+        // FTS5 virtual tables do not reliably delete by LIKE on UNINDEXED
+        // columns. Delete affected rows by exact path, then rebuild from
+        // the updated chunks table.
+        for (const oldPath of oldPaths) {
+            runPreparedReturnCount(this.db, 'DELETE FROM chunk_fts WHERE path = ?', [oldPath]);
+        }
         for (const oldPath of oldPaths) {
             const newPath = newPrefix + oldPath.slice(oldPrefix.length);
             this.insertFtsFromChunks(newPath);

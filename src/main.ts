@@ -7,7 +7,7 @@
 // versions.json live alongside it in the plugin folder.
 // =============================================================================
 
-import { Plugin, normalizePath, type Vault, type TAbstractFile, type TFile } from 'obsidian';
+import { Plugin, normalizePath, TFile, TFolder, type Vault, type TAbstractFile } from 'obsidian';
 import { openStore } from './store/store.ts';
 import type { Store, EmbeddingRecord } from './store/store.ts';
 import { IntakeLane, type FileSource, type FileEntry } from './intake/lane.ts';
@@ -110,25 +110,25 @@ export default class MuninnPlugin extends Plugin {
 
     private registerVaultHandlers(vault: Vault): void {
         this.registerEvent(vault.on('create', (file: TAbstractFile) => {
-            if (isMarkdownFile(file)) this.lane!.onCreate(file.path);
+            if (file instanceof TFile && file.extension === 'md') this.lane!.onCreate(file.path);
         }));
         this.registerEvent(vault.on('modify', (file: TAbstractFile) => {
-            if (isMarkdownFile(file)) this.lane!.onModify(file.path);
+            if (file instanceof TFile && file.extension === 'md') this.lane!.onModify(file.path);
         }));
         this.registerEvent(vault.on('delete', (file: TAbstractFile) => {
-            if (isMarkdownFile(file)) this.lane!.onDelete(file.path);
+            if (file instanceof TFile && file.extension === 'md') this.lane!.onDelete(file.path);
         }));
         this.registerEvent(vault.on('rename', (file: TAbstractFile, oldPath: string) => {
-            if (isMarkdownFile(file)) this.lane!.onRename(oldPath, file.path);
+            if (file instanceof TFile && file.extension === 'md') {
+                this.lane!.onRename(oldPath, file.path);
+            } else if (file instanceof TFolder) {
+                // Belt-and-suspenders: Obsidian usually emits per-child
+                // rename events, but if it ever does not, the prefix rename
+                // keeps every child path from going stale until the next walk.
+                this.lane!.onRenamePrefix(oldPath, file.path);
+            }
         }));
     }
-}
-
-// TFile is the concrete Obsidian file class. We cannot import it directly,
-// but TAbstractFile has no extension property. Use a runtime guard via
-// Object.prototype and cast to TFile only after checking the property.
-function isMarkdownFile(file: TAbstractFile): file is TFile {
-    return 'extension' in file && (file as TFile).extension === 'md';
 }
 
 // ---------------------------------------------------------------------------
@@ -146,7 +146,7 @@ class ObsidianFileSource implements FileSource {
 
     async readFile(path: string): Promise<FileEntry | null> {
         const file = this.vault.getAbstractFileByPath(path);
-        if (file === null || !isMarkdownFile(file)) return null;
+        if (file === null || !(file instanceof TFile) || file.extension !== 'md') return null;
         const bytes = new Uint8Array(await this.vault.readBinary(file));
         // Use stat mtime when available; otherwise fall back to 0 so the
         // stable content_hash drives change detection.

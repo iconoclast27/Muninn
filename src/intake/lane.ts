@@ -122,6 +122,13 @@ export class IntakeLane {
         this.schedule(oldPath, { kind: 'rename', newPath });
     }
 
+    onRenamePrefix(fromFolder: string, toFolder: string): void {
+        // Folder renames move every child path. Obsidian typically emits
+        // per-child rename events too, but if it ever does not, the prefix
+        // rename keeps child paths from going stale until the next walk.
+        this.schedule(fromFolder, { kind: 'renamePrefix', toFolder });
+    }
+
     private schedule(path: string, op: IntakeOp): void {
         if (this.stopped) return;
         // Fold the new event into the existing pending state for this path.
@@ -258,6 +265,14 @@ export class IntakeLane {
                     this.store.deleteChunksForPath(path);
                 }
                 break;
+            case 'renamePrefix':
+                try {
+                    this.store.renamePrefix(path, op.toFolder);
+                } catch (e) {
+                    // eslint-disable-next-line no-console
+                    console.warn(`[Muninn] renamePrefix ${path} -> ${op.toFolder} failed:`, e);
+                }
+                break;
         }
     }
 
@@ -371,7 +386,8 @@ export class IntakeLane {
 type PathState =
     | { kind: 'touch' }
     | { kind: 'delete' }
-    | { kind: 'rename'; newPath: string };
+    | { kind: 'rename'; newPath: string }
+    | { kind: 'renamePrefix'; toFolder: string };
 
 /** External event arriving from Obsidian. Same shape as PathState but kept
  *  distinct to make the fold direction obvious. */
@@ -384,8 +400,13 @@ function foldState(oldState: PathState, event: IntakeOp): PathState {
     if (event.kind === 'rename') {
         // A rename of a path currently targeted at `newPath` means the
         // logical destination becomes the new rename target.
-        if (oldState.kind === 'rename') return { kind: 'rename', newPath: event.newPath };
         return { kind: 'rename', newPath: event.newPath };
+    }
+    if (event.kind === 'renamePrefix') {
+        // Folder renames override any pending touch/rename for the same
+        // prefix; a delete still dominates.
+        if (oldState.kind === 'delete') return oldState;
+        return { kind: 'renamePrefix', toFolder: event.toFolder };
     }
     // Touch on top of anything: keep the current logical state.
     return oldState;
