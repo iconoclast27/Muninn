@@ -40,7 +40,7 @@ function makeVector(seed: number): Uint8Array {
 }
 
 class FakeEmbedder {
-    embed(inputs: string[]): EmbeddingRecord | null {
+    async embed(inputs: string[]): Promise<EmbeddingRecord | null> {
         const input = inputs[0]?.trim() ?? '';
         // Deterministic "hash" for the fake embedder so repeated calls
         // for the same text produce the same vh in this fixture.
@@ -112,10 +112,10 @@ async function main(): Promise<void> {
     // A5
     const darkApi = createMuninnApi(store, null);
     check('A5 semantic null without embedder',
-        darkApi.searchSemantic('hello') === null);
+        await darkApi.searchSemantic('hello') === null);
 
     // A6
-    const semantic = api.searchSemantic('machine learning');
+    const semantic = await api.searchSemantic('machine learning');
     check('A6 semantic returns frozen shape',
         semantic !== null && 'hits' in semantic,
         JSON.stringify(semantic));

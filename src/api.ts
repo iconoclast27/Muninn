@@ -64,7 +64,7 @@ export interface ReindexResult {
 
 export interface MuninnApi {
     searchText(query: string): TextSearchResult | null;
-    searchSemantic(text: string): SemanticSearchResult | null;
+    searchSemantic(text: string): Promise<SemanticSearchResult | null>;
     relatedChunks(path: string, k: number): { neighbors: ChunkRef[] } | null;
     tagVocabulary(): { tags: TagInfo[] } | null;
     forceReindex(onProgress?: (p: ReindexProgress) => void): Promise<ReindexResult | null>;
@@ -130,7 +130,7 @@ export function createMuninnApi(
             return { hits: store.searchText(q).map(toHit), mode: 'bm25' };
         },
 
-        searchSemantic(text: string): SemanticSearchResult | null {
+        async searchSemantic(text: string): Promise<SemanticSearchResult | null> {
             if (!text || text.trim().length === 0) {
                 return fail('empty semantic query');
             }
@@ -142,12 +142,13 @@ export function createMuninnApi(
             let queryEmbedding = store.getEmbedding(queryVh);
             if (queryEmbedding === undefined) {
                 // Need to embed the query text first.
-                const fetched = embedClient.embed([trimmed]);
+                const fetched = await embedClient.embed([trimmed]);
                 if (fetched === null) {
                     return fail('embedder failed on query');
                 }
-                store.insertEmbeddings([fetched]);
-                queryEmbedding = store.getEmbedding(fetched.vh);
+                const recs = Array.isArray(fetched) ? fetched : [fetched];
+                store.insertEmbeddings(recs);
+                queryEmbedding = store.getEmbedding(recs[0]?.vh ?? queryVh);
                 if (queryEmbedding === undefined) {
                     return fail('query embedding missing after insert');
                 }
@@ -217,8 +218,8 @@ export function laneReindexer(lane: IntakeLane): Reindexer {
 // ---------------------------------------------------------------------------
 
 export interface EmbedClient {
-    /** Embed one string. Returns the embedding record, or null on failure. */
-    embed(inputs: string[]): EmbeddingRecord | null;
+    /** Embed a batch of strings. Returns one record per input, or null on failure. */
+    embed(inputs: string[]): Promise<EmbeddingRecord[] | EmbeddingRecord | null>;
 }
 
 // ---------------------------------------------------------------------------

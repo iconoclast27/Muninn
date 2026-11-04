@@ -61,7 +61,7 @@ class FakeSource implements FileSource {
 
 class FakeEmbedder implements EmbedClient {
     private cache = new Map<string, Float32Array>();
-    embed(inputs: string[]): EmbeddingRecord | null {
+    async embed(inputs: string[]): Promise<EmbeddingRecord | null> {
         const input = inputs[0]?.trim() ?? '';
         let vec = this.cache.get(input);
         if (vec === undefined) {

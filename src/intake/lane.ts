@@ -234,24 +234,26 @@ export class IntakeLane {
             };
         });
         const missingVhs = this.findMissingEmbeddings(records);
-        let embedded = 0;
-        if (missingVhs.length > 0 && this.embedClient !== null) {
-            const texts = missingVhs.map((m) => m.text);
-            const fetched = this.embedClient.embed(texts);
-            if (fetched !== null) {
-                // Fake embedders may return a single record for a batch;
-                // real clients return one per input. Accept both by inserting
-                // whatever the client returned.
-                const recs = Array.isArray(fetched) ? fetched : [fetched];
-                this.store.insertEmbeddings(recs);
-                embedded += recs.length;
-            }
-        }
+        const embedded = await this.embedMissing(missingVhs);
         this.store.transaction(() => {
             this.store.replaceChunksForPath(path, records);
             this.store.recordFile(path, entry.bytes.length, entry.mtime, contentSha(entry.bytes));
         });
         return { chunks: records.length, embedded };
+    }
+
+    private async embedMissing(missing: Array<{ vh: string; text: string }>): Promise<number> {
+        if (missing.length === 0 || this.embedClient === null) return 0;
+        let embedded = 0;
+        for (const batch of chunk(missing, 8)) {
+            const texts = batch.map((m) => m.text);
+            const fetched = await this.embedClient.embed(texts);
+            if (fetched === null) continue;
+            const recs = Array.isArray(fetched) ? fetched : [fetched];
+            this.store.insertEmbeddings(recs);
+            embedded += recs.length;
+        }
+        return embedded;
     }
 
     private findMissingEmbeddings(records: ChunkRecord[]): Array<{ vh: string; text: string }> {
@@ -280,4 +282,12 @@ function mergeOps(oldOp: IntakeOp, newOp: IntakeOp): IntakeOp {
     if (newOp.kind === 'rename') return newOp;
     // Touch dominates touch / delete dominates touch handled above.
     return { kind: 'touch' };
+}
+
+function chunk<T>(arr: T[], size: number): T[][] {
+    const out: T[][] = [];
+    for (let i = 0; i < arr.length; i += size) {
+        out.push(arr.slice(i, i + size));
+    }
+    return out;
 }

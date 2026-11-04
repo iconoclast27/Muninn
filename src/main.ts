@@ -12,6 +12,7 @@ import { openStore } from './store/store.ts';
 import type { Store, EmbeddingRecord } from './store/store.ts';
 import { IntakeLane, type FileSource, type FileEntry } from './intake/lane.ts';
 import { createMuninnApi, laneReindexer, type MuninnApi, type EmbedClient } from './api.ts';
+import { renderEmbedInput, embedVh } from './chunker/render.ts';
 
 const MODEL_TAG = 'ollama/nomic-embed-text:v1.5';
 const DIM = 768;
@@ -130,15 +131,46 @@ class ObsidianFileSource implements FileSource {
 class OllamaEmbedClient implements EmbedClient {
     private endpoint = 'http://localhost:11434/api/embed';
 
-    embed(inputs: string[]): EmbeddingRecord | null {
+    async embed(inputs: string[]): Promise<EmbeddingRecord[] | null> {
         // Obsidian plugins run in a browser-like renderer; fetch is global.
-        // Because embed() is synchronous in our API, we cannot await here.
-        // This is the placeholder dark-safe implementation: it always reports
-        // the embedder as absent. The real async client will be added once the
-        // API shape is adjusted to return Promise, or once we batch/embed in
-        // the intake lane directly.
-        // eslint-disable-next-line no-console
-        console.warn('[Muninn] Ollama embed not yet wired synchronously');
-        return null;
+        try {
+            const res = await fetch(this.endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    model: 'nomic-embed-text:v1.5',
+                    input: inputs,
+                    keep_alive: '-1m',
+                }),
+            });
+            if (!res.ok) {
+                // eslint-disable-next-line no-console
+                console.warn('[Muninn] Ollama embed HTTP', res.status);
+                return null;
+            }
+            const data = (await res.json()) as {
+                embeddings: number[][];
+                model: string;
+            };
+            const vectors = data.embeddings.map((arr, i) => {
+                const floats = Float32Array.from(arr);
+                return {
+                    vh: '', // populated below after render
+                    vector: new Uint8Array(floats.buffer),
+                    dim: floats.length,
+                    model_tag: MODEL_TAG,
+                    epoch: 1,
+                };
+            });
+            // Derive vh for each input from the render contract.
+            for (let i = 0; i < inputs.length; i++) {
+                vectors[i].vh = embedVh(renderEmbedInput('search_document:', [], null, inputs[i]));
+            }
+            return vectors;
+        } catch (e) {
+            // eslint-disable-next-line no-console
+            console.warn('[Muninn] Ollama embed failed:', (e as Error).message);
+            return null;
+        }
     }
 }
