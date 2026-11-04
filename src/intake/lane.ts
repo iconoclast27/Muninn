@@ -252,10 +252,12 @@ export class IntakeLane {
         await this.ingest(path, entry);
     }
 
+    private static utf8Decoder = new TextDecoder('utf-8', { fatal: false });
+
     private async ingest(path: string, entry: FileEntry): Promise<{ chunks: number; embedded: number }> {
         const result = chunkNote(entry.bytes);
         const records: ChunkRecord[] = result.chunks.map((c, i) => {
-            const text = Buffer.from(entry.bytes.subarray(c.bs, c.be)).toString('utf-8');
+            const text = IntakeLane.utf8Decoder.decode(entry.bytes.subarray(c.bs, c.be));
             return {
                 path,
                 ord: i,

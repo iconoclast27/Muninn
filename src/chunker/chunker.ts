@@ -128,10 +128,12 @@ function lineEnd(bytes: Uint8Array, from: number): number {
     return nl === -1 ? bytes.length : nl + 1;
 }
 
+const utf8Decoder = new TextDecoder('utf-8', { fatal: false });
+
 function decodeLine(bytes: Uint8Array, bs: number, be: number): string {
     // Decode with terminator, then strip a trailing CR for comparison
     // only. Offsets keep the CR; CRLF straddling is faithful.
-    return Buffer.from(bytes.subarray(bs, be)).toString('utf-8').replace(/\r$/, '');
+    return utf8Decoder.decode(bytes.subarray(bs, be)).replace(/\r$/, '');
 }
 
 function isWhitespaceByte(b: number): boolean {
@@ -156,7 +158,7 @@ function partitionFrontmatter(bytes: Uint8Array, start: number): FmPartition {
     while (i < bytes.length) {
         const le = lineEnd(bytes, i);
         if (decodeLine(bytes, i, le).trim() === '---') {
-            const blockText = Buffer.from(bytes.subarray(firstLe, i)).toString('utf-8');
+            const blockText = utf8Decoder.decode(bytes.subarray(firstLe, i));
             // Degenerate (C05) parses down to {} ⇒ null fm. Never throws.
             return { fm: parseFmContext(blockText), bodyStart: le };
         }
@@ -406,7 +408,7 @@ export function chunkNote(fileBytes: Uint8Array): ChunkResult {
     if (cur !== null) drafts.push(cur);
 
     const chunks: Chunk[] = drafts.map((d, ord) => {
-        const text = Buffer.from(fileBytes.subarray(d.bs, d.be)).toString('utf-8');
+        const text = utf8Decoder.decode(fileBytes.subarray(d.bs, d.be));
         return {
             ord,
             bs: d.bs,

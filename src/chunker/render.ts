@@ -128,7 +128,7 @@ export function renderEmbedInput(
 
 /** vh of a rendered embed input. */
 export function embedVh(embedInput: string): string {
-    return sha16(Buffer.from(embedInput, 'utf-8'));
+    return sha16(new TextEncoder().encode(embedInput));
 }
 
 // -----------------------------------------------------------------------------
