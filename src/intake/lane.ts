@@ -69,6 +69,7 @@ export class IntakeLane {
     private pending = new Map<string, PathState>();
     private reindexing = false;
     private stopped = false;
+    private drainFlight: Promise<void> | null = null;
 
     constructor(opts: {
         store: Store;
@@ -131,18 +132,37 @@ export class IntakeLane {
             this.pending.set(path, op);
         }
         if (!this.reindexing) {
-            // Drain the buffer on the next microtask.
-            queueMicrotask(() => this.drain());
+            // Drain the buffer on the next microtask. Single-flight: if a
+            // drain is already running, this call chains behind it.
+            queueMicrotask(() => this.drain().catch((e: unknown) => {
+                // eslint-disable-next-line no-console
+                console.error('[Muninn] intake drain failed:', e);
+            }));
         }
     }
 
-    /** Drain buffered events idempotently. Called automatically or manually. */
-    drain(): void {
-        if (this.stopped || this.reindexing) return;
+    /** Drain buffered events idempotently. Called automatically or manually.
+     *  Only one drain runs at a time; concurrent callers wait on the same
+     *  in-flight promise (one pump ever). */
+    drain(): Promise<void> {
+        if (this.stopped || this.reindexing) return Promise.resolve();
+        if (this.drainFlight !== null) return this.drainFlight;
+        this.drainFlight = this.drainLoop().finally(() => {
+            this.drainFlight = null;
+        });
+        return this.drainFlight;
+    }
+
+    private async drainLoop(): Promise<void> {
         while (this.pending.size > 0) {
             const [path, op] = this.pending.entries().next().value as [string, IntakeOp];
             this.pending.delete(path);
-            this.applyOp(path, op);
+            try {
+                await this.applyOp(path, op);
+            } catch (e) {
+                // eslint-disable-next-line no-console
+                console.error(`[Muninn] intake error for ${path}:`, e);
+            }
         }
     }
 
@@ -201,7 +221,10 @@ export class IntakeLane {
         } finally {
             this.reindexing = false;
             // Replay anything that arrived during reindex.
-            this.drain();
+            this.drain().catch((e: unknown) => {
+                // eslint-disable-next-line no-console
+                console.error('[Muninn] intake post-reindex drain failed:', e);
+            });
         }
     }
 
@@ -214,19 +237,26 @@ export class IntakeLane {
         this.pending.clear();
     }
 
-    private applyOp(path: string, op: PathState): void {
+    private async applyOp(path: string, op: PathState): Promise<void> {
         switch (op.kind) {
             case 'touch':
-                this.ingestTouch(path).catch((e: unknown) => {
-                    // eslint-disable-next-line no-console
-                    console.error(`[Muninn] intake error for ${path}:`, e);
-                });
+                await this.ingestTouch(path);
                 break;
             case 'delete':
                 this.store.deleteChunksForPath(path);
                 break;
             case 'rename':
-                this.store.renamePath(path, op.newPath);
+                try {
+                    this.store.renamePath(path, op.newPath);
+                } catch (e) {
+                    // If the destination already holds rows (constraint
+                    // violation), delete the stale source rows instead of
+                    // leaving the lane wedged. This is a recoverable race
+                    // between a rename and a prior delete.
+                    // eslint-disable-next-line no-console
+                    console.warn(`[Muninn] rename ${path} -> ${op.newPath} failed, falling back to delete source:`, e);
+                    this.store.deleteChunksForPath(path);
+                }
                 break;
         }
     }
