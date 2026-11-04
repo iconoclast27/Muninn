@@ -36,7 +36,7 @@ DB flags **'c'** only, never **'ct'** (no threads, no worker). Zone 2 disposabil
 
 ## 2. Schema
 
-Four tables. No companions, no external-content tricks.
+Five tables. No companions, no external-content tricks.
 
 ### 2.1 Files (watermarks)
 
@@ -80,7 +80,17 @@ Four tables. No companions, no external-content tricks.
 **Primary key:** `vh` — content-keyed, one vector per unique rendered input.  
 **Invariant:** same `vh` + same `model_tag` + same `epoch` = identical vector. Determinism is the license for deduplication (chunker Spec P3/P6 supply it upstream).
 
-### 2.4 Meta
+### 2.4 Tags
+
+| Column | Type | Meaning |
+|--------|------|---------|
+| `vh` | TEXT (PK) | Vector-hash of the rendered embed input |
+| `tags` | TEXT | JSON array of canonical tag strings |
+
+**Primary key:** `vh` — content-keyed, one tag set per unique rendered input.
+**Rationale:** Tags travel with the chunk's rendered content, not with the file path. Identical content in multiple files shares tag metadata, while `tagVocabulary()` joins against `chunks` to count distinct files and occurrences correctly.
+
+### 2.5 Meta
 
 | Column | Type | Meaning |
 |--------|------|---------|
@@ -92,6 +102,7 @@ Four tables. No companions, no external-content tricks.
 - `chunker_epoch` — bump on any chunker behavioral change (replaces legacy `cp`); mismatch forces full re-chunk
 - `embedder_epoch` — bump on model/dimension/prefix change; mismatch forces full re-embed
 - `embedder_model_tag`
+- `embedder_dim` — optional; when present, intake lane validates embedding dimension against it
 
 ---
 
@@ -167,7 +178,15 @@ getEmbedding(vh: string): EmbeddingRecord | undefined
 countEmbeddings(): number
 ```
 
-### 4.6 FTS5
+### 4.6 Tags
+
+```typescript
+insertTags(records: TagRecord[]): number   // transaction, batch; canonicalises tags per vh
+getTags(vh: string): string[] | undefined  // parsed JSON array
+tagVocabulary(): TagInfo[]                 // per-tag file and chunk counts
+```
+
+### 4.7 FTS5
 
 ```typescript
 searchText(query: string): SearchResult[]   // MATCH, trigram, bm25 rank
@@ -175,19 +194,21 @@ searchScan(query: string): SearchResult[]   // LIKE '%q%', disclosed mode='scan'
 deleteRowsForPath(path: string): number     // cascade from deleteChunksForPath
 ```
 
-### 4.7 Transactions
+### 4.8 Transactions
 
 ```typescript
-transaction<T>(fn: () => T): T
+transaction<T>(fn: () => T | Promise<T>): Promise<T>
 ```
 
-### 4.8 Diagnostic — read-only, explicitly policed
+The body is awaited before commit, so asynchronous work stays inside the transaction boundary.
+
+### 4.9 Diagnostic — read-only, explicitly policed
 
 ```typescript
 query<T>(sql: string, ...params: unknown[]): T[]
 ```
 
-WASM sqlite will happily execute mutations through any statement API — there is no better-sqlite3-style `.all()`-throws-on-mutation guarantee. So the door guards itself: the **first keyword** of `sql` must be `SELECT` or `WITH` (after trim; a leading `--` comment is a rejection, not a parse). Anything else throws `ReadOnlyDoorViolation` naming the rejected verb. The verb list is an allowlist, not a denylist — new verbs are rejected by default.
+WASM sqlite will happily execute mutations through any statement API — there is no better-sqlite3-style `.all()`-throws-on-mutation guarantee. So the door guards itself: the **first keyword** of `sql` must be `SELECT` or `WITH` (after trim; a leading `--` comment is a rejection, not a parse), and the statement must contain **no semicolon** — multi-statement strings are rejected as `semicolon`. Anything else throws `ReadOnlyDoorViolation` naming the rejected verb. The verb list is an allowlist, not a denylist — new verbs are rejected by default.
 
 ---
 
@@ -255,19 +276,29 @@ API freezes the `mode` field: `Result { hits: Hit[], mode: 'bm25' | 'scan' }`.
 
 ## 6. Integration Points
 
-### 6.1 Ollama Client Shape (from spike receipt, 2026-11-03)
+### 6.1 Ollama Client Shape (from spike receipt, 2026-11-03, amended 2026-11-04)
+
+The embedder contract is internal to Plugin 1; the frozen API only consumes its output.
+
+```typescript
+interface EmbedClient {
+  embed(inputs: { vh: string; text: string }[]): Promise<EmbeddingRecord[] | null>
+}
+```
+
+The caller supplies the pre-computed `vh` from the render contract, so the embedder never re-derives it from raw text. The bundled Ollama client POSTs to `localhost:11434/api/embed`:
 
 ```javascript
 POST /api/embed
 {
   model: 'nomic-embed-text:v1.5',
-  input: ['text1', 'text2'],  // batch array — confirmed working from renderer
+  input: inputs.map(i => i.text),  // batch array — confirmed working from renderer
   keep_alive: '-1m'
 }
 // Response: { embeddings: [Float32[768]...], model, total_duration }
 ```
 
-**Dark-safe:** Ollama absent → promise rejects → Plugin 1 API returns `null + reason`, never throws. Confirmed by spike: renderer fetch to `localhost:11434` succeeds and returns `dims: 768, ok: true`.
+**Dark-safe:** Ollama absent → promise rejects / fetch aborts → returns `null`. Plugin 1 API returns `null + reason`, never throws. The bundled client uses a 30-second `AbortController` timeout. Confirmed by spike: renderer fetch to `localhost:11434` succeeds and returns `dims: 768, ok: true`.
 
 ### 6.2 Frozen API Surface (Plugin 1)
 
@@ -306,7 +337,9 @@ Decided in-draft: lazy embedding retention (§5.4.1); `forceReindex` progress ca
 2. **`src/store/store.ts`** against this spec
 3. **`src/api.ts`** — frozen surface, dark-safe wrappers
 4. **`src/intake/lane.ts`** — intake lane
-5. Additional fixtures as modules land (rename-without-re-embed, fallback-mode search, reindex atomicity)
+5. Additional fixtures as modules land (rename-without-re-embed, fallback-mode search, reindex atomicity, tag vocabulary)
+6. **End-to-end Desktop smoke test** — install `main.js` + `manifest.json` in a test vault, verify load, manual reindex, and search
+7. **Release for testing** — tag and attach build artifacts
 
 ---
 
