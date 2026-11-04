@@ -202,6 +202,17 @@ function runPrepared(db: Database, sql: string, params: BindableValue[] = []): v
     }
 }
 
+function runPreparedReturnCount(db: Database, sql: string, params: BindableValue[] = []): number {
+    const s = db.prepare(sql);
+    try {
+        s.bind(params);
+        while (s.step()) { /* consume */ }
+    } finally {
+        s.finalize();
+    }
+    return db.changes();
+}
+
 // ---------------------------------------------------------------------------
 // Store implementation
 // ---------------------------------------------------------------------------
@@ -290,31 +301,80 @@ class StoreImpl implements Store {
     }
 
     // -----------------------------------------------------------------------
-    // Chunks — stubs
+    // Chunks API doors
     // -----------------------------------------------------------------------
 
-    insertChunks(_records: ChunkRecord[]): number {
-        throw new Error('insertChunks not implemented');
+    insertChunks(records: ChunkRecord[]): number {
+        let inserted = 0;
+        const chunkStmt = this.db.prepare(
+            'INSERT INTO chunks(path, ord, vh, bs, be, text, title) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        );
+        const ftsStmt = this.db.prepare(
+            'INSERT INTO chunk_fts(text, title, path, ord, bs, be, vh) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        );
+        try {
+            for (const r of records) {
+                chunkStmt.bind([r.path, r.ord, r.vh, r.bs, r.be, r.text, r.title]);
+                while (chunkStmt.step()) { /* no-op */ }
+                chunkStmt.reset();
+                chunkStmt.clearBindings();
+                ftsStmt.bind([r.text, r.title, r.path, r.ord, r.bs, r.be, r.vh]);
+                while (ftsStmt.step()) { /* no-op */ }
+                ftsStmt.reset();
+                ftsStmt.clearBindings();
+                inserted++;
+            }
+        } finally {
+            chunkStmt.finalize();
+            ftsStmt.finalize();
+        }
+        return inserted;
     }
 
-    replaceChunksForPath(_path: string, _records: ChunkRecord[]): number {
-        throw new Error('replaceChunksForPath not implemented');
+    replaceChunksForPath(path: string, records: ChunkRecord[]): number {
+        // Preserve any existing watermark — a rescan of unchanged bytes
+        // must not erase the file's observation state.
+        const watermark = this.getFile(path);
+        this.deleteChunksAndFtsForPath(path);
+        const inserted = this.insertChunks(records);
+        if (watermark !== undefined) {
+            this.recordFile(path, watermark.size, watermark.mtime, watermark.content_hash);
+        }
+        return inserted;
     }
 
-    deleteChunksForPath(_path: string): { chunks: number; ftsRows: number } {
-        throw new Error('deleteChunksForPath not implemented');
+    deleteChunksForPath(path: string): { chunks: number; ftsRows: number } {
+        const result = this.deleteChunksAndFtsForPath(path);
+        this.deleteFile(path); // watermark purge — pairing invariant
+        return result;
+    }
+
+    private deleteChunksAndFtsForPath(path: string): { chunks: number; ftsRows: number } {
+        const chunksBefore = this.countChunks();
+        runPrepared(this.db, 'DELETE FROM chunks WHERE path = ?', [path]);
+        const chunksDeleted = chunksBefore - this.countChunks();
+        const ftsBefore = this.countFtsRows();
+        runPrepared(this.db, 'DELETE FROM chunk_fts WHERE path = ?', [path]);
+        const ftsDeleted = ftsBefore - this.countFtsRows();
+        return { chunks: chunksDeleted, ftsRows: ftsDeleted };
     }
 
     countChunks(): number {
         const s = this.db.prepare('SELECT COUNT(*) FROM chunks');
-        s.bind([]);
         const row = s.step() ? s.get([]) : null;
         s.finalize();
         return row ? Number(row[0]) : 0;
     }
 
-    renamePath(_oldPath: string, _newPath: string): number {
-        throw new Error('renamePath not implemented');
+    renamePath(oldPath: string, newPath: string): number {
+        let rows = 0;
+        rows += runPreparedReturnCount(this.db,
+            'UPDATE chunks SET path = ? WHERE path = ?', [newPath, oldPath]);
+        rows += runPreparedReturnCount(this.db,
+            'UPDATE chunk_fts SET path = ? WHERE path = ?', [newPath, oldPath]);
+        rows += runPreparedReturnCount(this.db,
+            'UPDATE files SET path = ? WHERE path = ?', [newPath, oldPath]);
+        return rows;
     }
 
     renamePrefix(_fromFolder: string, _toFolder: string): number {
@@ -339,26 +399,90 @@ class StoreImpl implements Store {
 
     countEmbeddings(): number {
         const s = this.db.prepare('SELECT COUNT(*) FROM embeddings');
-        s.bind([]);
         const row = s.step() ? s.get([]) : null;
         s.finalize();
         return row ? Number(row[0]) : 0;
     }
 
     // -----------------------------------------------------------------------
-    // FTS5 — stubs
+    // FTS5 API doors
     // -----------------------------------------------------------------------
 
-    searchText(_query: string): SearchResult[] {
-        throw new Error('searchText not implemented');
+    searchText(query: string): SearchResult[] {
+        if (query.length === 1) {
+            return [];
+        }
+        if (query.length === 2) {
+            return this.searchScan(query);
+        }
+        const sql = `
+            SELECT vh, path, ord, bs, be, title, text
+            FROM chunk_fts
+            WHERE chunk_fts MATCH ?
+            ORDER BY rank
+        `;
+        const s = this.db.prepare(sql);
+        const rows: SearchResult[] = [];
+        try {
+            s.bind([query]);
+            while (s.step()) {
+                const r = s.get([]);
+                rows.push({
+                    vh: String(r[0]),
+                    path: String(r[1]),
+                    ord: Number(r[2]),
+                    bs: Number(r[3]),
+                    be: Number(r[4]),
+                    title: String(r[5]),
+                    text: String(r[6]),
+                });
+            }
+        } finally {
+            s.finalize();
+        }
+        return rows;
     }
 
-    searchScan(_query: string): SearchResult[] {
-        throw new Error('searchScan not implemented');
+    searchScan(query: string): SearchResult[] {
+        const sql = `
+            SELECT vh, path, ord, bs, be, title, text
+            FROM chunk_fts
+            WHERE text LIKE ?
+            LIMIT 100
+        `;
+        const s = this.db.prepare(sql);
+        const rows: SearchResult[] = [];
+        try {
+            s.bind([`%${query}%`]);
+            while (s.step()) {
+                const r = s.get([]);
+                rows.push({
+                    vh: String(r[0]),
+                    path: String(r[1]),
+                    ord: Number(r[2]),
+                    bs: Number(r[3]),
+                    be: Number(r[4]),
+                    title: String(r[5]),
+                    text: String(r[6]),
+                });
+            }
+        } finally {
+            s.finalize();
+        }
+        return rows;
     }
 
-    deleteRowsForPath(_path: string): number {
-        throw new Error('deleteRowsForPath not implemented');
+    deleteRowsForPath(path: string): number {
+        const before = this.countFtsRows();
+        runPrepared(this.db, 'DELETE FROM chunk_fts WHERE path = ?', [path]);
+        return before - this.countFtsRows();
+    }
+
+    private countFtsRows(): number {
+        const s = this.db.prepare('SELECT COUNT(*) FROM chunk_fts');
+        const row = s.step() ? s.get([]) : null;
+        s.finalize();
+        return row ? Number(row[0]) : 0;
     }
 
     // -----------------------------------------------------------------------
@@ -386,7 +510,7 @@ class StoreImpl implements Store {
         const s = this.db.prepare(sql);
         const rows: T[] = [];
         try {
-            s.bind(params);
+            if (params.length > 0) s.bind(params);
             while (s.step()) {
                 rows.push(s.get([]) as T);
             }

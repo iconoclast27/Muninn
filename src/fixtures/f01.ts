@@ -146,6 +146,7 @@ check('S3b FTS purged on delete',
 check('S3c watermark purged on delete',
       store.getFile(PATH) === undefined);
 store.replaceChunksForPath(PATH, records);
+store.recordFile(PATH, TEST_BYTES.length, 1700000000000, 'aaaaaaaaaaaaaaaa');
 check('S3d recreated file re-derives rows',
       store.countChunks() === count1 &&
       JSON.stringify(store.searchText('paragraph').map((h: Hit) => h.vh).sort()) ===
@@ -154,13 +155,12 @@ check('S3d recreated file re-derives rows',
 // S4 — rename integrity
 const vhBefore = new Set(records.map((r) => r.vh));
 store.renamePath(PATH, 'notes/renamed-document.md');
-interface ChunkRow { path: string; vh: string }
-const renamed = store.query<ChunkRow>('SELECT path, vh FROM chunks');
+const renamed = store.query<[string, string]>('SELECT path, vh FROM chunks');
 check('S4a no rows under old path',
-      renamed.every((r: ChunkRow) => r.path === 'notes/renamed-document.md'));
+      renamed.every((r) => r[0] === 'notes/renamed-document.md'));
 check('S4b vh set unchanged by rename',
-      new Set(renamed.map((r: ChunkRow) => r.vh)).size === vhBefore.size &&
-      renamed.every((r: ChunkRow) => vhBefore.has(r.vh)));
+      new Set(renamed.map((r) => r[1])).size === vhBefore.size &&
+      renamed.every((r) => vhBefore.has(r[1])));
 check('S4c watermark moved',
       store.getFile('notes/renamed-document.md')?.content_hash === 'aaaaaaaaaaaaaaaa');
 check('S4d old watermark gone',
