@@ -138,13 +138,22 @@ export class IntakeLane {
         const start = performance.now();
         this.reindexing = true;
         try {
-            // Wipe index state (embeddings stay as lazy cache).
-            this.store.transaction(() => {
-                this.store.clearFiles();
-                this.store.query('SELECT path FROM chunks');
-            });
             // Read all current paths.
             const paths = await this.source.listFiles();
+            const currentPaths = new Set(paths);
+
+            // Wipe index state for anything no longer in the source.
+            // Embeddings stay as a lazy cache per spec §5.4.1.
+            const stalePaths = this.store.query<[string]>('SELECT DISTINCT path FROM chunks')
+                .map((r) => r[0])
+                .filter((p) => !currentPaths.has(p));
+            this.store.transaction(() => {
+                for (const path of stalePaths) {
+                    this.store.deleteChunksForPath(path);
+                }
+                this.store.clearFiles();
+            });
+
             let walked = 0;
             let totalChunks = 0;
             let totalEmbedded = 0;
