@@ -9,6 +9,8 @@
 
 import type { Store, SearchResult, EmbeddingRecord } from './store/store.ts';
 import { renderEmbedInput, embedVh } from './chunker/render.ts';
+import type { IntakeLane } from './intake/lane.ts';
+import type { ReindexProgress as LaneReindexProgress, ReindexResult as LaneReindexResult } from './intake/lane.ts';
 
 // ---------------------------------------------------------------------------
 // Frozen public shapes
@@ -99,9 +101,16 @@ function toHit(r: SearchResult): Hit {
 // API implementation
 // ---------------------------------------------------------------------------
 
+export type Reindexer = (opts: {
+    store: Store;
+    embedClient: EmbedClient | null;
+    onProgress?: (p: ReindexProgress) => void;
+}) => Promise<ReindexResult | null>;
+
 export function createMuninnApi(
     store: Store,
     embedClient: EmbedClient | null,
+    reindexer: Reindexer = async () => fail('forceReindex not wired'),
 ): MuninnApi {
     return {
         searchText(query: string): TextSearchResult | null {
@@ -185,11 +194,21 @@ export function createMuninnApi(
         },
 
         async forceReindex(onProgress?: (p: ReindexProgress) => void): Promise<ReindexResult | null> {
-            // This is a placeholder: the real reindex is owned by the intake
-            // lane because it needs vault filesystem access. The API door
-            // forwards to a reindexer supplied by the plugin host.
-            return fail('forceReindex not wired');
+            return reindexer({ store, embedClient, onProgress });
         },
+    };
+}
+
+/** Convenience reindexer backed by an IntakeLane. */
+export function laneReindexer(lane: IntakeLane): Reindexer {
+    return async ({ onProgress }) => {
+        const r = await lane.forceReindex(onProgress);
+        return {
+            files: r.files,
+            chunks: r.chunks,
+            embedded: r.embedded,
+            durationMs: r.durationMs,
+        };
     };
 }
 
