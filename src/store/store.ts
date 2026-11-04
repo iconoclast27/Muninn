@@ -367,34 +367,102 @@ class StoreImpl implements Store {
     }
 
     renamePath(oldPath: string, newPath: string): number {
-        let rows = 0;
-        rows += runPreparedReturnCount(this.db,
+        // FTS5 virtual tables with multiple UNINDEXED columns do not reliably
+        // support UPDATE on those columns. We rename the real tables, then
+        // rebuild the affected FTS rows by delete+reinsert from chunks.
+        const affected = runPreparedReturnCount(this.db,
             'UPDATE chunks SET path = ? WHERE path = ?', [newPath, oldPath]);
-        rows += runPreparedReturnCount(this.db,
-            'UPDATE chunk_fts SET path = ? WHERE path = ?', [newPath, oldPath]);
-        rows += runPreparedReturnCount(this.db,
+        runPreparedReturnCount(this.db,
             'UPDATE files SET path = ? WHERE path = ?', [newPath, oldPath]);
-        return rows;
+        runPrepared(this.db, 'DELETE FROM chunk_fts WHERE path = ?', [oldPath]);
+        this.insertFtsFromChunks(newPath);
+        return affected;
     }
 
-    renamePrefix(_fromFolder: string, _toFolder: string): number {
-        throw new Error('renamePrefix not implemented');
+    renamePrefix(fromFolder: string, toFolder: string): number {
+        // Boundary match: `Area/` never captures `Area 2/`.
+        const oldPrefix = fromFolder.endsWith('/') ? fromFolder : `${fromFolder}/`;
+        const newPrefix = toFolder.endsWith('/') ? toFolder : `${toFolder}/`;
+        const pattern = `${oldPrefix}%`;
+
+        // Capture the exact old paths that will move.
+        const oldPaths = this.query<[string]>(
+            'SELECT DISTINCT path FROM chunks WHERE path LIKE ?', pattern,
+        ).map((r) => r[0]);
+
+        runPreparedReturnCount(this.db,
+            'UPDATE chunks SET path = ? || substr(path, ?) WHERE path LIKE ?',
+            [newPrefix, oldPrefix.length + 1, pattern],
+        );
+        runPreparedReturnCount(this.db,
+            'UPDATE files SET path = ? || substr(path, ?) WHERE path LIKE ?',
+            [newPrefix, oldPrefix.length + 1, pattern],
+        );
+        runPrepared(this.db,
+            'DELETE FROM chunk_fts WHERE path LIKE ?', [pattern],
+        );
+        for (const oldPath of oldPaths) {
+            const newPath = newPrefix + oldPath.slice(oldPrefix.length);
+            this.insertFtsFromChunks(newPath);
+        }
+        return oldPaths.length;
+    }
+
+    private insertFtsFromChunks(path: string): void {
+        const s = this.db.prepare(
+            `INSERT INTO chunk_fts(text, title, path, ord, bs, be, vh)
+             SELECT text, title, path, ord, bs, be, vh FROM chunks WHERE path = ?`,
+        );
+        try {
+            s.bind([path]);
+            while (s.step()) { /* no-op */ }
+        } finally {
+            s.finalize();
+        }
     }
 
     // -----------------------------------------------------------------------
-    // Embeddings — stubs
+    // Embeddings API doors
     // -----------------------------------------------------------------------
 
-    insertEmbeddings(_records: EmbeddingRecord[]): number {
-        throw new Error('insertEmbeddings not implemented');
+    insertEmbeddings(records: EmbeddingRecord[]): number {
+        let inserted = 0;
+        const stmt = this.db.prepare(
+            'INSERT OR REPLACE INTO embeddings(vh, vector, dim, model_tag, epoch) VALUES (?, ?, ?, ?, ?)',
+        );
+        try {
+            for (const r of records) {
+                stmt.bind([r.vh, r.vector, r.dim, r.model_tag, r.epoch]);
+                while (stmt.step()) { /* no-op */ }
+                stmt.reset();
+                stmt.clearBindings();
+                inserted++;
+            }
+        } finally {
+            stmt.finalize();
+        }
+        return inserted;
     }
 
-    deleteEmbeddingsForVh(_vh: string): void {
-        throw new Error('deleteEmbeddingsForVh not implemented');
+    deleteEmbeddingsForVh(vh: string): void {
+        runPrepared(this.db, 'DELETE FROM embeddings WHERE vh = ?', [vh]);
     }
 
-    getEmbedding(_vh: string): EmbeddingRecord | undefined {
-        throw new Error('getEmbedding not implemented');
+    getEmbedding(vh: string): EmbeddingRecord | undefined {
+        const s = this.db.prepare(
+            'SELECT vector, dim, model_tag, epoch FROM embeddings WHERE vh = ?',
+        );
+        s.bind([vh]);
+        const row = s.step() ? s.get([]) : null;
+        s.finalize();
+        if (!row) return undefined;
+        return {
+            vh,
+            vector: row[0] as Uint8Array,
+            dim: Number(row[1]),
+            model_tag: String(row[2]),
+            epoch: Number(row[3]),
+        };
     }
 
     countEmbeddings(): number {

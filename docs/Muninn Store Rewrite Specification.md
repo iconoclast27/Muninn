@@ -19,6 +19,7 @@ against this spec.
 2. Delete left a resurrection hole (watermark outliving rows) — §5.4 now purges all three, atomically, with the pairing invariant stated.
 3. Per-row `cp` was vestigial spine furniture — dropped from the schema; `chunker_epoch` in meta is the sole authority (§2.4, §3).
 4. WASM sqlite lacks better-sqlite3's automatic `.all()`-throws-on-mutation guard — §4.8 `query()` gets an explicit first-keyword allowlist.
+5. **FTS5 virtual-table rename:** `UPDATE chunk_fts SET path = ...` is not reliable when the table has multiple `UNINDEXED` columns (§3, §5.3). Implementation renames the underlying `chunks`/`files` rows, then rebuilds affected FTS rows via `DELETE ... + INSERT ... SELECT ... FROM chunks`. The visible behavior — no re-chunk, no re-embed, identical content under the new path — remains unchanged.
 
 ---
 
@@ -111,8 +112,8 @@ CREATE VIRTUAL TABLE chunk_fts USING fts5(
 
 **Self-contained:** no external content table — `text` lives here. Trigram tokenizer, per the locked decision. No `cp` column — chunker_epoch in meta is the sole policy authority.  
 **Citation invariant:** `file.slice(bs, be)` == served text, policed at the search boundary.  
-**Deletion mapping:** `DELETE FROM chunk_fts WHERE path = ?` — path-keyed, matches `chunks.path`, no rowid bookkeeping.  
-**Rename mapping:** `UPDATE chunk_fts SET path = ? WHERE path = ?` — no rowid bookkeeping either.
+**Deletion mapping:** `DELETE FROM chunk_fts WHERE path = ?` — path-keyed, matches `chunks.path`, no rowid bookkeeping.
+**Rename mapping:** `UPDATE chunks SET path = ? WHERE path = ?` and `UPDATE files SET path = ? WHERE path = ?`, followed by `DELETE FROM chunk_fts WHERE path = ?` and re-insert from the updated `chunks` rows. Direct `UPDATE` of `chunk_fts` is avoided because FTS5 virtual tables with multiple `UNINDEXED` columns do not reliably support it.
 
 ---
 
@@ -209,11 +210,12 @@ Any change to chunker behavior or embedder model/dimension/prefix **must** bump 
 
 Single path (`renamePath`):
 1. `UPDATE chunks SET path = ? WHERE path = ?`
-2. `UPDATE chunk_fts SET path = ? WHERE path = ?`
-3. `UPDATE files SET path = ? WHERE path = ?`
-4. No re-chunk, no re-embed — `vh` is path-independent by construction (chunker takes only bytes; C06's certified premise)
+2. `UPDATE files SET path = ? WHERE path = ?`
+3. `DELETE FROM chunk_fts WHERE path = ?`
+4. `INSERT INTO chunk_fts(text,title,path,ord,bs,be,vh) SELECT ... FROM chunks WHERE path = ?`
+5. No re-chunk, no re-embed — `vh` is path-independent by construction (chunker takes only bytes; C06's certified premise)
 
-Subtree (`renamePrefix`): same three statements, boundary-matched with the prefix + `'/'` discipline — `Area/` never captures `Area 2/` (legacy `asPrefix`/`reAddress` semantics). A file at `old/note.md` before and `new/note.md` after must show identical chunk rows except `path`. Returns rows affected.
+Subtree (`renamePrefix`): same statements, boundary-matched with the prefix + `'/'` discipline — `Area/` never captures `Area 2/` (legacy `asPrefix`/`reAddress` semantics). The old-path set is captured first so each moved path can be rebuilt in FTS. A file at `old/note.md` before and `new/note.md` after must show identical chunk rows except `path`. Returns count of moved paths.
 
 ### 5.4 Deletion Semantics
 
