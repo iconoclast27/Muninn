@@ -44,12 +44,12 @@ class SlowSource implements FileSource {
 }
 
 class FakeEmbedder implements EmbedClient {
-    async embed(inputs: string[]): Promise<EmbeddingRecord[] | null> {
-        return inputs.map((text) => {
+    async embed(inputs: { vh: string; text: string }[]): Promise<EmbeddingRecord[] | null> {
+        return inputs.map(({ vh, text }) => {
             const floats = new Float32Array(DIM);
             for (let i = 0; i < DIM; i++) floats[i] = Math.sin(text.length + i);
             return {
-                vh: '0000000000000000',
+                vh,
                 vector: new Uint8Array(floats.buffer),
                 dim: DIM,
                 model_tag: MODEL_TAG,

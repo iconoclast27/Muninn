@@ -155,18 +155,22 @@ class ObsidianFileSource implements FileSource {
 
 class OllamaEmbedClient implements EmbedClient {
     private endpoint = 'http://localhost:11434/api/embed';
+    private timeoutMs = 30000;
 
-    async embed(inputs: string[]): Promise<EmbeddingRecord[] | null> {
+    async embed(inputs: { vh: string; text: string }[]): Promise<EmbeddingRecord[] | null> {
         // Obsidian plugins run in a browser-like renderer; fetch is global.
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
         try {
             const res = await fetch(this.endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     model: 'nomic-embed-text:v1.5',
-                    input: inputs,
+                    input: inputs.map((i) => i.text),
                     keep_alive: '-1m',
                 }),
+                signal: controller.signal,
             });
             if (!res.ok) {
                 // eslint-disable-next-line no-console
@@ -180,22 +184,25 @@ class OllamaEmbedClient implements EmbedClient {
             const vectors = data.embeddings.map((arr, i) => {
                 const floats = Float32Array.from(arr);
                 return {
-                    vh: '', // populated below after render
+                    vh: inputs[i]?.vh ?? '',
                     vector: new Uint8Array(floats.buffer),
                     dim: floats.length,
                     model_tag: MODEL_TAG,
                     epoch: 1,
                 };
             });
-            // Derive vh for each input from the render contract.
-            for (let i = 0; i < inputs.length; i++) {
-                vectors[i].vh = embedVh(renderEmbedInput('search_document:', [], null, inputs[i]));
-            }
             return vectors;
         } catch (e) {
-            // eslint-disable-next-line no-console
-            console.warn('[Muninn] Ollama embed failed:', (e as Error).message);
+            if ((e as Error).name === 'AbortError') {
+                // eslint-disable-next-line no-console
+                console.warn('[Muninn] Ollama embed timed out');
+            } else {
+                // eslint-disable-next-line no-console
+                console.warn('[Muninn] Ollama embed failed:', (e as Error).message);
+            }
             return null;
+        } finally {
+            clearTimeout(timeout);
         }
     }
 }

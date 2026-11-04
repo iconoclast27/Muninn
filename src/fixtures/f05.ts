@@ -61,24 +61,20 @@ class FakeSource implements FileSource {
 
 class FakeEmbedder implements EmbedClient {
     private cache = new Map<string, Float32Array>();
-    async embed(inputs: string[]): Promise<EmbeddingRecord | null> {
-        const input = inputs[0]?.trim() ?? '';
-        let vec = this.cache.get(input);
-        if (vec === undefined) {
-            vec = new Float32Array(DIM);
-            const seed = input.length;
-            for (let i = 0; i < DIM; i++) {
-                vec[i] = Math.sin(seed + i) * (i % 2 === 0 ? 1 : -1);
+    async embed(inputs: { vh: string; text: string }[]): Promise<EmbeddingRecord[] | null> {
+        return inputs.map(({ vh, text }) => {
+            const key = text.trim();
+            let vec = this.cache.get(key);
+            if (vec === undefined) {
+                vec = new Float32Array(DIM);
+                const seed = key.length;
+                for (let i = 0; i < DIM; i++) {
+                    vec[i] = Math.sin(seed + i) * (i % 2 === 0 ? 1 : -1);
+                }
+                this.cache.set(key, vec);
             }
-            this.cache.set(input, vec);
-        }
-        const buf = new Uint8Array(vec.buffer);
-        const vh = Array.from(buf.slice(0, 8))
-            .map((b) => b.toString(16).padStart(2, '0'))
-            .join('')
-            .padStart(16, '0')
-            .slice(0, 16);
-        return { vh, vector: new Uint8Array(vec.buffer), dim: DIM, model_tag: MODEL_TAG, epoch: 1 };
+            return { vh, vector: new Uint8Array(vec.buffer), dim: DIM, model_tag: MODEL_TAG, epoch: 1 };
+        });
     }
 }
 

@@ -33,23 +33,23 @@ class RecordingOllamaClient implements EmbedClient {
     endpoint: string;
     failNext = false;
     badDim = false;
-    calls: string[][] = [];
+    calls: { vh: string; text: string }[][] = [];
 
     constructor(endpoint = 'http://localhost:11434/api/embed') {
         this.endpoint = endpoint;
     }
 
-    async embed(inputs: string[]): Promise<EmbeddingRecord[] | null> {
+    async embed(inputs: { vh: string; text: string }[]): Promise<EmbeddingRecord[] | null> {
         this.calls.push(inputs);
         if (this.failNext) return null;
         const dim = this.badDim ? 512 : DIM;
-        return inputs.map((text) => {
+        return inputs.map(({ vh, text }) => {
             const floats = new Float32Array(dim);
             for (let i = 0; i < dim; i++) {
                 floats[i] = Math.sin(text.length + i);
             }
             return {
-                vh: embedVh(renderEmbedInput('search_document:', [], null, text)),
+                vh,
                 vector: new Uint8Array(floats.buffer),
                 dim,
                 model_tag: MODEL_TAG,
@@ -110,7 +110,7 @@ async function main(): Promise<void> {
     client.badDim = false;
     const text = 'vh derivation check';
     const vh = embedVh(renderEmbedInput('search_document:', [], null, text));
-    const single = await client.embed([text]);
+    const single = await client.embed([{ vh, text }]);
     check('O4 returned vh matches render contract',
         single !== null && single.length === 1 && single[0].vh === vh,
         JSON.stringify(single));

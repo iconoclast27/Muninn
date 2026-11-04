@@ -331,7 +331,7 @@ class StoreImpl implements Store {
     insertChunks(records: ChunkRecord[]): number {
         let inserted = 0;
         const chunkStmt = this.db.prepare(
-            'INSERT INTO chunks(path, ord, vh, bs, be, text, title) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            'INSERT OR REPLACE INTO chunks(path, ord, vh, bs, be, text, title) VALUES (?, ?, ?, ?, ?, ?, ?)',
         );
         const ftsStmt = this.db.prepare(
             'INSERT INTO chunk_fts(text, title, path, ord, bs, be, vh) VALUES (?, ?, ?, ?, ?, ?, ?)',
@@ -390,13 +390,14 @@ class StoreImpl implements Store {
         // FTS5 virtual tables with multiple UNINDEXED columns do not reliably
         // support UPDATE on those columns. We rename the real tables, then
         // rebuild the affected FTS rows by delete+reinsert from chunks.
-        const affected = runPreparedReturnCount(this.db,
+        const chunksMoved = runPreparedReturnCount(this.db,
             'UPDATE chunks SET path = ? WHERE path = ?', [newPath, oldPath]);
-        runPreparedReturnCount(this.db,
+        const filesMoved = runPreparedReturnCount(this.db,
             'UPDATE files SET path = ? WHERE path = ?', [newPath, oldPath]);
-        runPrepared(this.db, 'DELETE FROM chunk_fts WHERE path = ?', [oldPath]);
+        const ftsDeleted = runPreparedReturnCount(this.db,
+            'DELETE FROM chunk_fts WHERE path = ?', [oldPath]);
         this.insertFtsFromChunks(newPath);
-        return affected;
+        return chunksMoved + filesMoved + ftsDeleted;
     }
 
     renamePrefix(fromFolder: string, toFolder: string): number {
@@ -620,6 +621,11 @@ async function getWasmBytes(): Promise<Uint8Array> {
             const wasmModule: { default: string } = await import('@sqlite.org/sqlite-wasm/sqlite3.wasm' as string);
             wasmBytes = b64ToBytes(wasmModule.default);
         } catch {
+            // Node fallback is only valid in a real Node runtime. Obsidian's
+            // renderer lacks process.cwd() / fs, so guard it explicitly.
+            if (typeof process === 'undefined' || typeof process.cwd !== 'function') {
+                throw new Error('sqlite3.wasm base64 load failed and Node fallback is unavailable');
+            }
             const { readFileSync } = await import('fs');
             const { resolve } = await import('path');
             const wasmPath = resolve(

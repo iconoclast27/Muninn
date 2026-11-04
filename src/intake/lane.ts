@@ -65,7 +65,7 @@ export class IntakeLane {
     private epoch: number;
     private chunkerCp: number;
 
-    private pending = new Map<string, IntakeOp>();
+    private pending = new Map<string, PathState>();
     private reindexing = false;
     private stopped = false;
 
@@ -102,15 +102,30 @@ export class IntakeLane {
     }
 
     onRename(oldPath: string, newPath: string): void {
+        // If the new path itself has pending operations, fold them so a
+        // delete-after-rename sequence resolves against the final path.
+        const destPending = this.pending.get(newPath);
+        if (destPending) {
+            // The logical outcome for oldPath now depends on whatever is
+            // queued for newPath. Delete dominates; touch is a no-op because
+            // the rename already moved the rows.
+            if (destPending.kind === 'delete') {
+                this.pending.delete(newPath);
+                this.pending.set(oldPath, { kind: 'delete' });
+                return;
+            }
+            // Any touch/destination rename becomes a rename of oldPath to the
+            // same newPath (idempotent).
+        }
         this.schedule(oldPath, { kind: 'rename', newPath });
     }
 
     private schedule(path: string, op: IntakeOp): void {
         if (this.stopped) return;
-        // Merge with an existing pending op for the same path.
+        // Fold the new event into the existing pending state for this path.
         const existing = this.pending.get(path);
         if (existing) {
-            this.pending.set(path, mergeOps(existing, op));
+            this.pending.set(path, foldState(existing, op));
         } else {
             this.pending.set(path, op);
         }
@@ -198,7 +213,7 @@ export class IntakeLane {
         this.pending.clear();
     }
 
-    private applyOp(path: string, op: IntakeOp): void {
+    private applyOp(path: string, op: PathState): void {
         switch (op.kind) {
             case 'touch':
                 this.ingestTouch(path).catch((e: unknown) => {
@@ -263,14 +278,28 @@ export class IntakeLane {
         if (missing.length === 0 || this.embedClient === null) return 0;
         let embedded = 0;
         for (const batch of chunk(missing, 8)) {
-            const texts = batch.map((m) => m.text);
-            const fetched = await this.embedClient.embed(texts);
+            const fetched = await this.embedClient.embed(batch);
             if (fetched === null) continue;
-            const recs = Array.isArray(fetched) ? fetched : [fetched];
-            this.store.insertEmbeddings(recs);
-            embedded += recs.length;
+            const valid = fetched.filter((r) => this.isValidEmbedding(r));
+            this.store.insertEmbeddings(valid);
+            embedded += valid.length;
         }
         return embedded;
+    }
+
+    private isValidEmbedding(r: EmbeddingRecord): boolean {
+        return r.dim === this.expectedDim()
+            && r.model_tag === this.modelTag
+            && r.epoch === this.epoch
+            && r.vh.length > 0
+            && r.vector.length > 0;
+    }
+
+    private expectedDim(): number {
+        const metaDim = this.store.getMeta('embedder_dim');
+        if (metaDim !== undefined) return Number(metaDim);
+        // Default for the bundled model tag.
+        return 768;
     }
 
     private findMissingEmbeddings(records: ChunkRecord[]): Array<{ vh: string; text: string }> {
@@ -287,18 +316,27 @@ export class IntakeLane {
     }
 }
 
-type IntakeOp =
+type PathState =
     | { kind: 'touch' }
     | { kind: 'delete' }
     | { kind: 'rename'; newPath: string };
 
-function mergeOps(oldOp: IntakeOp, newOp: IntakeOp): IntakeOp {
-    // A delete after any op is a delete of the original path.
-    if (newOp.kind === 'delete') return newOp;
-    // A rename after a touch is a rename of the original path.
-    if (newOp.kind === 'rename') return newOp;
-    // Touch dominates touch / delete dominates touch handled above.
-    return { kind: 'touch' };
+/** External event arriving from Obsidian. Same shape as PathState but kept
+ *  distinct to make the fold direction obvious. */
+type IntakeOp = PathState;
+
+function foldState(oldState: PathState, event: IntakeOp): PathState {
+    // The map key is always the path the event was reported against.
+    // We model the logical outcome for that original path.
+    if (event.kind === 'delete') return { kind: 'delete' };
+    if (event.kind === 'rename') {
+        // A rename of a path currently targeted at `newPath` means the
+        // logical destination becomes the new rename target.
+        if (oldState.kind === 'rename') return { kind: 'rename', newPath: event.newPath };
+        return { kind: 'rename', newPath: event.newPath };
+    }
+    // Touch on top of anything: keep the current logical state.
+    return oldState;
 }
 
 function chunk<T>(arr: T[], size: number): T[][] {

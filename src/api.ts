@@ -142,11 +142,11 @@ export function createMuninnApi(
             let queryEmbedding = store.getEmbedding(queryVh);
             if (queryEmbedding === undefined) {
                 // Need to embed the query text first.
-                const fetched = await embedClient.embed([trimmed]);
+                const fetched = await embedClient.embed([{ vh: queryVh, text: trimmed }]);
                 if (fetched === null) {
                     return fail('embedder failed on query');
                 }
-                const recs = Array.isArray(fetched) ? fetched : [fetched];
+                const recs = fetched;
                 store.insertEmbeddings(recs);
                 queryEmbedding = store.getEmbedding(recs[0]?.vh ?? queryVh);
                 if (queryEmbedding === undefined) {
@@ -218,8 +218,12 @@ export function laneReindexer(lane: IntakeLane): Reindexer {
 // ---------------------------------------------------------------------------
 
 export interface EmbedClient {
-    /** Embed a batch of strings. Returns one record per input, or null on failure. */
-    embed(inputs: string[]): Promise<EmbeddingRecord[] | EmbeddingRecord | null>;
+    /**
+     * Embed a batch of chunks. Returns one record per input in the same order,
+     * or null on failure. The caller supplies the pre-computed vh so the
+     * embedder never re-derives it from the raw text.
+     */
+    embed(inputs: { vh: string; text: string }[]): Promise<EmbeddingRecord[] | null>;
 }
 
 // ---------------------------------------------------------------------------

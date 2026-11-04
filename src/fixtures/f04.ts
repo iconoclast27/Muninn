@@ -16,7 +16,7 @@
 // =============================================================================
 
 import { openStore, type Store, type EmbeddingRecord } from '../store/store.ts';
-import { createMuninnApi, type MuninnApi } from '../api.ts';
+import { createMuninnApi, type MuninnApi, type EmbedClient } from '../api.ts';
 
 const DIM = 768;
 const MODEL_TAG = 'ollama/nomic-embed-text:v1.5';
@@ -39,27 +39,26 @@ function makeVector(seed: number): Uint8Array {
     return new Uint8Array(floats.buffer);
 }
 
-class FakeEmbedder {
-    async embed(inputs: string[]): Promise<EmbeddingRecord | null> {
-        const input = inputs[0]?.trim() ?? '';
-        // Deterministic "hash" for the fake embedder so repeated calls
-        // for the same text produce the same vh in this fixture.
-        let hash = 0;
-        for (let i = 0; i < input.length; i++) {
-            hash = ((hash << 5) - hash) + input.charCodeAt(i);
-            hash |= 0;
-        }
-        const seed = Math.abs(hash);
-        // Use a simple string hash as a fake vh; the embedder is only
-        // required to return a stable 16-hex vh for the input.
-        const vh = Math.abs(seed).toString(16).padStart(16, '0').slice(0, 16);
-        return {
-            vh,
-            vector: makeVector(seed),
-            dim: DIM,
-            model_tag: MODEL_TAG,
-            epoch: 1,
-        };
+class FakeEmbedder implements EmbedClient {
+    async embed(inputs: { vh: string; text: string }[]): Promise<EmbeddingRecord[] | null> {
+        return inputs.map(({ vh, text }) => {
+            const input = text.trim();
+            // Deterministic "hash" for the fake embedder so repeated calls
+            // for the same text produce the same vector in this fixture.
+            let hash = 0;
+            for (let i = 0; i < input.length; i++) {
+                hash = ((hash << 5) - hash) + input.charCodeAt(i);
+                hash |= 0;
+            }
+            const seed = Math.abs(hash);
+            return {
+                vh,
+                vector: makeVector(seed),
+                dim: DIM,
+                model_tag: MODEL_TAG,
+                epoch: 1,
+            };
+        });
     }
 }
 
