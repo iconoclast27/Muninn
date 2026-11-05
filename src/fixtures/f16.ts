@@ -80,6 +80,7 @@ async function main(): Promise<void> {
         modelTag: 'ollama/nomic-embed-text:v1.5',
         epoch: 1,
         chunkerCp: 2,
+        debounceMs: 0,
     });
 
     // Start a full reindex. With a 150ms embed delay, it will not finish

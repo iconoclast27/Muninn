@@ -76,6 +76,7 @@ async function main(): Promise<void> {
         modelTag: MODEL_TAG,
         epoch: 1,
         chunkerCp: 2,
+        debounceMs: 0,
     });
 
     // Complete reindex first.

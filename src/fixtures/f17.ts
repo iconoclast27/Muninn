@@ -64,6 +64,7 @@ async function main(): Promise<void> {
         modelTag: 'ollama/nomic-embed-text:v1.5',
         epoch: 1,
         chunkerCp: 2,
+        debounceMs: 0,
     });
 
     // R1: schedule a modify, then a delete while the modify is still reading.

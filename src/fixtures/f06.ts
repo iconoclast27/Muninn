@@ -85,6 +85,7 @@ async function main(): Promise<void> {
         modelTag: MODEL_TAG,
         epoch: 1,
         chunkerCp: 2,
+        debounceMs: 0,
     });
     const api: MuninnApi = createMuninnApi(store, client, async () => lane.forceReindex());
 

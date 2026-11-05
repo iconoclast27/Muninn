@@ -82,6 +82,8 @@ export class IntakeLane {
     private stopped = false;
     private drainFlight: Promise<void> | null = null;
     private pathFlight = new Map<string, Promise<void>>();
+    private debounceMs: number;
+    private timers = new Map<string, ReturnType<typeof setTimeout>>();
 
     constructor(opts: {
         store: Store;
@@ -90,6 +92,7 @@ export class IntakeLane {
         modelTag: string;
         epoch: number;
         chunkerCp: number;
+        debounceMs?: number;
     }) {
         this.store = opts.store;
         this.source = opts.source;
@@ -97,6 +100,7 @@ export class IntakeLane {
         this.modelTag = opts.modelTag;
         this.epoch = opts.epoch;
         this.chunkerCp = opts.chunkerCp;
+        this.debounceMs = opts.debounceMs ?? 300;
     }
 
     // -----------------------------------------------------------------------
@@ -110,24 +114,29 @@ export class IntakeLane {
     onCreate(path: string): void {
         // eslint-disable-next-line no-console
         console.log('[Muninn] lane onCreate:', path);
-        this.schedule(path, { kind: 'touch' });
+        this.debounceTouch(path);
     }
 
     onModify(path: string): void {
         // eslint-disable-next-line no-console
         console.log('[Muninn] lane onModify:', path);
-        this.schedule(path, { kind: 'touch' });
+        this.debounceTouch(path);
     }
 
     onDelete(path: string): void {
         // eslint-disable-next-line no-console
         console.log('[Muninn] lane onDelete:', path);
+        this.cancelDebounce(path);
         this.schedule(path, { kind: 'delete' });
     }
 
     onRename(oldPath: string, newPath: string): void {
         // eslint-disable-next-line no-console
         console.log('[Muninn] lane onRename:', oldPath, '->', newPath);
+        // Cancel any pending debounced touches on either side of the move
+        // so they do not race with the rename.
+        this.cancelDebounce(oldPath);
+        this.cancelDebounce(newPath);
         // If the new path itself has pending operations, fold them so a
         // delete-after-rename sequence resolves against the final path.
         const destPending = this.pending.get(newPath);
@@ -150,7 +159,29 @@ export class IntakeLane {
         // Folder renames move every child path. Obsidian typically emits
         // per-child rename events too, but if it ever does not, the prefix
         // rename keeps child paths from going stale until the next walk.
+        this.cancelDebounce(fromFolder);
         this.schedule(fromFolder, { kind: 'renamePrefix', toFolder });
+    }
+
+    private debounceTouch(path: string): void {
+        if (this.stopped) return;
+        const existing = this.timers.get(path);
+        if (existing !== undefined) {
+            clearTimeout(existing);
+        }
+        const timer = setTimeout(() => {
+            this.timers.delete(path);
+            this.schedule(path, { kind: 'touch' });
+        }, this.debounceMs);
+        this.timers.set(path, timer);
+    }
+
+    private cancelDebounce(path: string): void {
+        const existing = this.timers.get(path);
+        if (existing !== undefined) {
+            clearTimeout(existing);
+            this.timers.delete(path);
+        }
     }
 
     private schedule(path: string, op: IntakeOp): void {
@@ -178,14 +209,26 @@ export class IntakeLane {
 
     /** Drain buffered events idempotently. Called automatically or manually.
      *  Only one drain runs at a time; concurrent callers wait on the same
-     *  in-flight promise (one pump ever). */
+     *  in-flight promise (one pump ever).
+     *  Also flushes any debounced touch timers so callers who explicitly
+     *  wait for the lane do not have to sleep through the debounce window. */
     drain(): Promise<void> {
         if (this.stopped || this.reindexing) return Promise.resolve();
         if (this.drainFlight !== null) return this.drainFlight;
+        this.flushDebouncedTouches();
         this.drainFlight = this.drainLoop().finally(() => {
             this.drainFlight = null;
         });
         return this.drainFlight;
+    }
+
+    private flushDebouncedTouches(): void {
+        if (this.timers.size === 0) return;
+        for (const [path, timer] of this.timers) {
+            clearTimeout(timer);
+            this.schedule(path, { kind: 'touch' });
+        }
+        this.timers.clear();
     }
 
     private async drainLoop(): Promise<void> {
@@ -288,6 +331,10 @@ export class IntakeLane {
     stop(): void {
         this.stopped = true;
         this.pending.clear();
+        for (const timer of this.timers.values()) {
+            clearTimeout(timer);
+        }
+        this.timers.clear();
         // pathFlight entries are left to settle on their own; the promises
         // will observe the stopped flag via checkStopped() inside ingest().
     }

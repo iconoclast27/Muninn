@@ -69,6 +69,7 @@ async function main(): Promise<void> {
         modelTag: 'ollama/nomic-embed-text:v1.5',
         epoch: 1,
         chunkerCp: 2,
+        debounceMs: 0,
     });
 
     // I1 — bad op does not drop later ops.
