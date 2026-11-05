@@ -21,6 +21,17 @@ import type {
 import type { EmbedClient } from '../api.ts';
 
 // ---------------------------------------------------------------------------
+// Shutdown signal
+// ---------------------------------------------------------------------------
+
+export class LaneShutdownError extends Error {
+    constructor() {
+        super('lane stopped during reindex');
+        this.name = 'LaneShutdownError';
+    }
+}
+
+// ---------------------------------------------------------------------------
 // File source abstraction
 // ---------------------------------------------------------------------------
 
@@ -198,6 +209,8 @@ export class IntakeLane {
         const start = performance.now();
         this.reindexing = true;
         try {
+            this.checkStopped();
+
             // Read all current paths.
             const paths = await this.source.listFiles();
             const currentPaths = new Set(paths);
@@ -208,6 +221,7 @@ export class IntakeLane {
                 .map((r) => r[0])
                 .filter((p) => !currentPaths.has(p));
             await this.store.transaction(async () => {
+                this.checkStopped();
                 for (const path of stalePaths) {
                     this.store.deleteChunksForPath(path);
                 }
@@ -221,6 +235,7 @@ export class IntakeLane {
                 onProgress({ phase: 'wipe', done: 0, total: paths.length });
             }
             for (const path of paths) {
+                this.checkStopped();
                 const entry = await this.source.readFile(path);
                 if (entry === null) continue;
                 const { chunks, embedded } = await this.ingest(path, entry);
@@ -235,6 +250,7 @@ export class IntakeLane {
             if (onProgress) {
                 onProgress({ phase: 'embed', done: paths.length, total: paths.length });
             }
+            this.checkStopped();
             this.store.setMeta('chunker_epoch', String(this.chunkerCp));
             return {
                 files: walked,
@@ -259,6 +275,12 @@ export class IntakeLane {
     stop(): void {
         this.stopped = true;
         this.pending.clear();
+    }
+
+    private checkStopped(): void {
+        if (this.stopped) {
+            throw new LaneShutdownError();
+        }
     }
 
     private async applyOp(path: string, op: PathState): Promise<void> {
@@ -325,6 +347,7 @@ export class IntakeLane {
     private static utf8Decoder = new TextDecoder('utf-8', { fatal: false });
 
     private async ingest(path: string, entry: FileEntry): Promise<{ chunks: number; embedded: number }> {
+        this.checkStopped();
         const result = chunkNote(entry.bytes);
         const records: ChunkRecord[] = result.chunks.map((c, i) => {
             const text = IntakeLane.utf8Decoder.decode(entry.bytes.subarray(c.bs, c.be));

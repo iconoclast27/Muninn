@@ -11,7 +11,7 @@ import { Plugin, normalizePath, TFile, TFolder, type Vault, type TAbstractFile }
 import { openStore } from './store/store.ts';
 import type { Store, EmbeddingRecord } from './store/store.ts';
 import { IntakeLane, type FileSource, type FileEntry } from './intake/lane.ts';
-import { createMuninnApi, laneReindexer, type MuninnApi, type EmbedClient } from './api.ts';
+import { createMuninnApi, laneReindexer, type MuninnApi, type EmbedClient, type ReindexResult } from './api.ts';
 import { renderEmbedInput, embedVh } from './chunker/render.ts';
 import { CHUNKER_CP } from './chunker/chunker.ts';
 
@@ -27,6 +27,8 @@ export default class MuninnPlugin extends Plugin {
     private cachePath: string | null = null;
     private flushTimer: number | null = null;
     private flushInProgress: Promise<void> | null = null;
+    private reindexInProgress: Promise<ReindexResult | null> | null = null;
+    private shuttingDown = false;
 
     async onload(): Promise<void> {
         const cachePath = this.getCachePath();
@@ -80,18 +82,30 @@ export default class MuninnPlugin extends Plugin {
             if (!this.lane || !this.api) return;
             this.registerVaultHandlers(this.app.vault);
             // Initial background walk.
-            this.lane.forceReindex()
-                .then((result) => {
+            this.reindexInProgress = this.lane.forceReindex()
+                .then(async (result) => {
                     // eslint-disable-next-line no-console
                     console.log('[Muninn] initial walk complete:', result);
-                    return this.flushCache().catch((flushErr: unknown) => {
+                    try {
+                        await this.flushCache();
+                    } catch (flushErr: unknown) {
                         // eslint-disable-next-line no-console
                         console.error('[Muninn] initial reindex flush failed:', flushErr);
-                    });
+                    }
+                    return result;
                 })
                 .catch((e: unknown) => {
+                    if (this.shuttingDown) {
+                        // Expected when the plugin is disabled/reloaded while
+                        // the initial reindex is still running.
+                        return null;
+                    }
                     // eslint-disable-next-line no-console
                     console.error('[Muninn] initial reindex failed:', e);
+                    return null;
+                })
+                .finally(() => {
+                    this.reindexInProgress = null;
                 });
         });
 
@@ -99,38 +113,66 @@ export default class MuninnPlugin extends Plugin {
             id: 'force-reindex',
             name: 'Force reindex vault',
             callback: () => {
-                this.api?.forceReindex()
-                    .then((result) => {
+                const p = this.api?.forceReindex();
+                if (!p) return;
+                this.reindexInProgress = p
+                    .then(async (result) => {
                         // eslint-disable-next-line no-console
                         console.log('[Muninn] force reindex complete:', result);
-                        return this.flushCache().catch((flushErr: unknown) => {
+                        try {
+                            await this.flushCache();
+                        } catch (flushErr: unknown) {
                             // eslint-disable-next-line no-console
                             console.error('[Muninn] force reindex flush failed:', flushErr);
-                        });
+                        }
+                        return result;
                     })
                     .catch((e: unknown) => {
+                        if (this.shuttingDown) {
+                            return null;
+                        }
                         // eslint-disable-next-line no-console
                         console.error('[Muninn] force reindex command failed:', e);
+                        return null;
+                    })
+                    .finally(() => {
+                        this.reindexInProgress = null;
                     });
             },
         });
     }
 
     onunload(): void {
+        this.shuttingDown = true;
         this.lane?.stop();
         if (this.flushTimer !== null) {
             window.clearTimeout(this.flushTimer);
             this.flushTimer = null;
         }
-        // Best-effort synchronous flush on unload. Obsidian's onunload is
-        // synchronous, so we fire the async write and keep a reference; the
-        // process exit will usually wait for the pending promise.
-        if (this.store !== null && this.cachePath !== null) {
-            this.flushInProgress = this.flushCache();
-        }
-        this.store?.close();
+
+        // Obsidian's onunload() is synchronous, but the initial reindex or
+        // a pending cache flush may still be async. Closing the store while
+        // those are running produced SQLite3Error: DB has been closed.
+        // Start a best-effort async cleanup that awaits them before closing.
+        const cleanup = async (): Promise<void> => {
+            if (this.reindexInProgress !== null) {
+                try { await this.reindexInProgress; } catch { /* shutdown path */ }
+            }
+            if (this.flushInProgress !== null) {
+                try { await this.flushInProgress; } catch { /* logged elsewhere */ }
+            }
+            // One final flush before the database goes away.
+            if (this.store !== null && this.cachePath !== null) {
+                try { await this.flushCache(); } catch { /* unload-time flush is best-effort */ }
+            }
+            this.store?.close();
+            this.store = null;
+            this.cachePath = null;
+        };
+        cleanup();
+
+        // Drop references so the API can't start new work while cleanup runs.
         this.lane = null;
-        this.store = null;
         this.api = null;
     }
 
@@ -165,10 +207,14 @@ export default class MuninnPlugin extends Plugin {
         }
         this.flushTimer = window.setTimeout(() => {
             this.flushTimer = null;
-            this.flushCache().catch((e: unknown) => {
-                // eslint-disable-next-line no-console
-                console.error('[Muninn] cache flush failed:', e);
-            });
+            this.flushInProgress = this.flushCache()
+                .catch((e: unknown) => {
+                    // eslint-disable-next-line no-console
+                    console.error('[Muninn] cache flush failed:', e);
+                })
+                .finally(() => {
+                    this.flushInProgress = null;
+                });
         }, FLUSH_DEBOUNCE_MS);
     }
 

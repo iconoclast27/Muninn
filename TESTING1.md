@@ -1,6 +1,6 @@
-# Muninn v0.2.0-test.5 — Manual Testing Scenario
+# Muninn v0.2.0-test.6 — Manual Testing Scenario
 
-Use this document to smoke-test the Plugin 1 build in Obsidian with the developer console open. Install the plugin via BRAT from the GitHub release tag `0.2.0-test.5`.
+Use this document to smoke-test the Plugin 1 build in Obsidian with the developer console open. Install the plugin via BRAT from the GitHub release tag `0.2.0-test.6`.
 
 ## Environment
 
@@ -13,7 +13,7 @@ Use this document to smoke-test the Plugin 1 build in Obsidian with the develope
 
 1. Install and enable the BRAT plugin in the test vault if not already present.
 2. In BRAT, choose **Add Beta Plugin** and enter: `iconoclast27/Muninn`.
-3. BRAT should fetch the release for tag `0.2.0-test.5`. If it offers a version picker, select `0.2.0-test.5`.
+3. BRAT should fetch the release for tag `0.2.0-test.6`. If it offers a version picker, select `0.2.0-test.6`.
 4. Enable **Muninn** in Community Plugins.
 5. Keep the console open.
 
@@ -177,12 +177,19 @@ This is a new event-test note for Muninn.
 ### Steps
 1. Rename an indexed note from `old-name.md` to `new-name.md`.
 2. Wait 5 seconds.
-3. Search for a word that was inside the note.
+3. Via the **Muninn API console method**, search for a distinctive word that was inside the note:
+
+```js
+const app = window.app;
+const plugin = app.plugins.plugins.muninn;
+console.log('rename search:', plugin.api.searchText('your-word'));
+```
 
 ### Expected results
-- Search returns the hit under the new path `new-name.md`.
+- `plugin.api.searchText` returns `{ hits: [...], mode: 'bm25' }` where the hit path is `new-name.md`.
 - The old path does not return hits.
 - No re-embed is triggered (no new Ollama request for that content).
+- The console does **not** show `[Muninn] initial reindex failed: SQLite3Error: DB has been closed.` when BRAT reloads the plugin during install.
 
 ## Scenario I — Persistence round-trip
 
@@ -229,10 +236,14 @@ For each scenario, record:
 ## Known limitations of this test build
 
 - Persistence is **debounced**: changes are flushed to disk 2 seconds after the last store mutation. A crash or forced Obsidian quit within that window may lose recent changes.
-- The synchronous `onunload` flush is best-effort; there is no guarantee Obsidian waits for the async `writeBinary` to complete before terminating the renderer process. Run **Force reindex vault** or wait a few seconds after your last edit before quitting to maximize durability.
+- The `onunload` flush is best-effort and asynchronous; Obsidian does not wait for it. Run **Force reindex vault** or wait a few seconds after your last edit before quitting to maximize durability.
 - Semantic search is brute-force over all embeddings in JavaScript, capped at 10k chunks. Large vaults may freeze briefly.
 - The plugin has no settings UI; Ollama endpoint and timeout are hardcoded (`localhost:11434`, 30s).
 - No sidebar UI yet; all search must go through the console API.
+
+## Fixed in this build
+
+- **0.2.0-test.6** resolves the `SQLite3Error: DB has been closed.` crash that could occur when BRAT reloaded the plugin while the initial reindex was still embedding chunks. The lane now interrupts `forceReindex` on `stop()`, and `onunload()` awaits the in-flight reindex/flush before closing the store.
 
 ## Reporting results
 
