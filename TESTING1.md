@@ -1,6 +1,6 @@
-# Muninn v0.2.0-test.6 — Manual Testing Scenario
+# Muninn v0.2.0-test.7 — Manual Testing Scenario
 
-Use this document to smoke-test the Plugin 1 build in Obsidian with the developer console open. Install the plugin via BRAT from the GitHub release tag `0.2.0-test.6`.
+Use this document to smoke-test the Plugin 1 build in Obsidian with the developer console open. Install the plugin via BRAT from the GitHub release tag `0.2.0-test.7`.
 
 ## Environment
 
@@ -244,6 +244,12 @@ For each scenario, record:
 ## Fixed in this build
 
 - **0.2.0-test.6** resolves the `SQLite3Error: DB has been closed.` crash that could occur when BRAT reloaded the plugin while the initial reindex was still embedding chunks. The lane now interrupts `forceReindex` on `stop()`, and `onunload()` awaits the in-flight reindex/flush before closing the store.
+- **0.2.0-test.7** closes the remaining high/medium holes from Lumo's review:
+  - **H3:** Intake lane operations are now serialized per-path, so a `delete` that arrives while a `modify` is still in flight cannot resurrect deleted rows.
+  - **M1:** Semantic search no longer persists transient query embeddings in the store; query vectors stay in local scope only.
+  - **M3/M4:** `insertChunks` deletes existing FTS rows for the affected paths before re-inserting, and `replaceChunksForPath` wraps its delete + insert + watermark + tags sequence in its own transaction.
+  - **L1:** `cosineSimilarity` now rejects dimension-mismatched vectors instead of silently truncating.
+  - **L6:** The `fail()` helper's comment no longer promises an accessor that does not exist.
 
 ## Reporting results
 

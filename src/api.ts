@@ -75,8 +75,8 @@ export interface MuninnApi {
 // ---------------------------------------------------------------------------
 
 function fail<T>(reason: string): T | null {
-    // Surface reason in a structured way without breaking the frozen shape.
-    // Callers receive null; diagnostic tools can read the last logged reason.
+    // Log the reason for diagnostics without breaking the frozen return shape.
+    // Callers receive null; the reason is exposed only through the console.
     // eslint-disable-next-line no-console
     console.warn('[Muninn API] dark-safe failure:', reason);
     return null;
@@ -138,22 +138,19 @@ export function createMuninnApi(
                 return fail('embedder unavailable');
             }
             const trimmed = text.trim();
-            const queryVh = embedVh(renderEmbedInput('search_query:', [], null, trimmed));
-            let queryEmbedding = store.getEmbedding(queryVh);
-            if (queryEmbedding === undefined) {
-                // Need to embed the query text first.
-                const fetched = await embedClient.embed([{ vh: queryVh, text: trimmed }]);
-                if (fetched === null) {
-                    return fail('embedder failed on query');
-                }
-                const recs = fetched;
-                store.insertEmbeddings(recs);
-                queryEmbedding = store.getEmbedding(recs[0]?.vh ?? queryVh);
-                if (queryEmbedding === undefined) {
-                    return fail('query embedding missing after insert');
-                }
+            // Embed the query text. Keep the resulting vector in local scope
+            // only; do not persist transient query embeddings in the store.
+            // Persisting them would leak ~3KB per distinct query forever.
+            const fetched = await embedClient.embed([{ vh: 'search_query:' + trimmed, text: trimmed }]);
+            if (fetched === null || fetched.length === 0) {
+                return fail('embedder failed on query');
             }
-            const neighbors = findSemanticNeighbors(store, queryEmbedding.vh, 20);
+            const rec = fetched[0];
+            if (rec.dim !== 768 || rec.vector.length === 0) {
+                return fail('embedder returned invalid query vector');
+            }
+            const qv = new Float32Array(rec.vector.buffer, rec.vector.byteOffset, rec.dim);
+            const neighbors = findSemanticNeighborsByVector(store, qv, 20);
             return { hits: neighbors.map(toHit) };
         },
 
@@ -241,6 +238,10 @@ function findSemanticNeighbors(store: Store, queryVh: string, k: number): Search
         return [];
     }
     const qv = new Float32Array(query.vector.buffer, query.vector.byteOffset, query.dim);
+    return findSemanticNeighborsByVector(store, qv, k);
+}
+
+function findSemanticNeighborsByVector(store: Store, qv: Float32Array, k: number): SearchResult[] {
     const candidates = store.query<[string, string, number, number, number, string, string, Uint8Array, number]>(
         `SELECT c.path, c.vh, c.ord, c.bs, c.be, c.title, c.text, e.vector, e.dim
          FROM chunks c
@@ -267,11 +268,13 @@ function findSemanticNeighbors(store: Store, queryVh: string, k: number): Search
 }
 
 function cosineSimilarity(a: Float32Array, b: Float32Array): number {
+    if (a.length !== b.length) {
+        return 0;
+    }
     let dot = 0;
     let aNorm = 0;
     let bNorm = 0;
-    const len = Math.min(a.length, b.length);
-    for (let i = 0; i < len; i++) {
+    for (let i = 0; i < a.length; i++) {
         dot += a[i] * b[i];
         aNorm += a[i] * a[i];
         bNorm += b[i] * b[i];

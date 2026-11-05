@@ -81,6 +81,7 @@ export class IntakeLane {
     private reindexing = false;
     private stopped = false;
     private drainFlight: Promise<void> | null = null;
+    private pathFlight = new Map<string, Promise<void>>();
 
     constructor(opts: {
         store: Store;
@@ -191,12 +192,24 @@ export class IntakeLane {
         while (this.pending.size > 0) {
             const [path, op] = this.pending.entries().next().value as [string, IntakeOp];
             this.pending.delete(path);
-            try {
-                await this.applyOp(path, op);
-                this.onMutation?.();
-            } catch (e) {
-                // eslint-disable-next-line no-console
-                console.error(`[Muninn] intake error for ${path}:`, e);
+            // Serialize all operations for a given path so a delete/rename that
+            // arrives while an earlier ingest is still in flight waits for the
+            // in-flight work to finish before applying. This closes the
+            // resurrection race described in Lumo H3.
+            const flight = this.pathFlight.get(path);
+            const next = (flight ?? Promise.resolve()).then(async () => {
+                try {
+                    await this.applyOp(path, op);
+                    this.onMutation?.();
+                } catch (e) {
+                    // eslint-disable-next-line no-console
+                    console.error(`[Muninn] intake error for ${path}:`, e);
+                }
+            });
+            this.pathFlight.set(path, next);
+            await next;
+            if (this.pathFlight.get(path) === next) {
+                this.pathFlight.delete(path);
             }
         }
     }
@@ -275,6 +288,8 @@ export class IntakeLane {
     stop(): void {
         this.stopped = true;
         this.pending.clear();
+        // pathFlight entries are left to settle on their own; the promises
+        // will observe the stopped flag via checkStopped() inside ingest().
     }
 
     private checkStopped(): void {
@@ -366,13 +381,11 @@ export class IntakeLane {
         const tagRecords = this.buildTagRecords(result, records);
         const missingVhs = this.findMissingEmbeddings(records);
         const embedded = await this.embedMissing(missingVhs);
-        await this.store.transaction(() => {
-            this.store.replaceChunksForPath(path, records);
-            this.store.recordFile(path, entry.bytes.length, entry.mtime, contentSha(entry.bytes));
-            if (tagRecords.length > 0) {
-                this.store.insertTags(tagRecords);
-            }
-        });
+        this.store.replaceChunksForPath(path, records, {
+            size: entry.bytes.length,
+            mtime: entry.mtime,
+            content_hash: contentSha(entry.bytes),
+        }, tagRecords);
         // eslint-disable-next-line no-console
         console.log('[Muninn] lane ingest stored:', path, 'chunks=', records.length, 'embedded=', embedded);
         return { chunks: records.length, embedded };

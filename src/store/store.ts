@@ -97,7 +97,7 @@ export interface Store {
 
     // Chunks
     insertChunks(records: ChunkRecord[]): number;
-    replaceChunksForPath(path: string, records: ChunkRecord[]): number;
+    replaceChunksForPath(path: string, records: ChunkRecord[], watermark?: FileWatermark, tags?: TagRecord[]): number;
     deleteChunksForPath(path: string): { chunks: number; ftsRows: number };
     countChunks(): number;
     countFiles(): number;
@@ -263,6 +263,20 @@ function runPreparedReturnCount(db: Database, sql: string, params: BindableValue
     return db.changes();
 }
 
+/** Synchronous transaction wrapper for callers that perform several store
+ *  mutations that must commit or roll back together. */
+function syncTransaction<T>(db: Database, fn: () => T): T {
+    db.exec('BEGIN');
+    try {
+        const result = fn();
+        db.exec('COMMIT');
+        return result;
+    } catch (e) {
+        db.exec('ROLLBACK');
+        throw e;
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Store implementation
 // ---------------------------------------------------------------------------
@@ -357,6 +371,14 @@ class StoreImpl implements Store {
     // -----------------------------------------------------------------------
 
     insertChunks(records: ChunkRecord[]): number {
+        // Make the operation idempotent: any existing FTS rows for the
+        // affected paths are removed first, so re-inserting the same records
+        // does not duplicate search results. The chunks table already uses
+        // INSERT OR REPLACE and is therefore idempotent by itself.
+        const paths = [...new Set(records.map((r) => r.path))];
+        for (const p of paths) {
+            runPreparedReturnCount(this.db, 'DELETE FROM chunk_fts WHERE path = ?', [p]);
+        }
         let inserted = 0;
         const chunkStmt = this.db.prepare(
             'INSERT OR REPLACE INTO chunks(path, ord, vh, bs, be, text, title) VALUES (?, ?, ?, ?, ?, ?, ?)',
@@ -383,16 +405,25 @@ class StoreImpl implements Store {
         return inserted;
     }
 
-    replaceChunksForPath(path: string, records: ChunkRecord[]): number {
+    replaceChunksForPath(path: string, records: ChunkRecord[], watermark?: FileWatermark, tags?: TagRecord[]): number {
         // Preserve any existing watermark — a rescan of unchanged bytes
-        // must not erase the file's observation state.
-        const watermark = this.getFile(path);
-        this.deleteChunksAndFtsForPath(path);
-        const inserted = this.insertChunks(records);
-        if (watermark !== undefined) {
-            this.recordFile(path, watermark.size, watermark.mtime, watermark.content_hash);
-        }
-        return inserted;
+        // must not erase the file's observation state. If the caller supplies
+        // a watermark, use it instead. The whole delete + insert + watermark
+        // + tags sequence is wrapped in a synchronous transaction so callers
+        // do not need to manage one themselves.
+        const existing = watermark === undefined ? this.getFile(path) : undefined;
+        return syncTransaction(this.db, () => {
+            this.deleteChunksAndFtsForPath(path);
+            const inserted = this.insertChunks(records);
+            const final = watermark ?? existing;
+            if (final !== undefined) {
+                this.recordFile(path, final.size, final.mtime, final.content_hash);
+            }
+            if (tags !== undefined && tags.length > 0) {
+                this.insertTags(tags);
+            }
+            return inserted;
+        });
     }
 
     deleteChunksForPath(path: string): { chunks: number; ftsRows: number } {
