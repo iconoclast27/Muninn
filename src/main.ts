@@ -7,16 +7,13 @@
 // versions.json live alongside it in the plugin folder.
 // =============================================================================
 
-import { Plugin, normalizePath, TFile, TFolder, type Vault, type TAbstractFile } from 'obsidian';
+import { Plugin, normalizePath, TFile, TFolder, Setting, PluginSettingTab, type Vault, type TAbstractFile } from 'obsidian';
 import { openStore } from './store/store.ts';
 import type { Store, EmbeddingRecord } from './store/store.ts';
 import { IntakeLane, type FileSource, type FileEntry } from './intake/lane.ts';
 import { createMuninnApi, laneReindexer, type MuninnApi, type EmbedClient, type ReindexResult } from './api.ts';
-import { renderEmbedInput, embedVh } from './chunker/render.ts';
 import { CHUNKER_CP } from './chunker/chunker.ts';
-
-const MODEL_TAG = 'ollama/nomic-embed-text:v1.5';
-const DIM = 768;
+import { DEFAULT_SETTINGS, sanitizeSettings, modelTag, type MuninnSettings } from './settings.ts';
 
 const FLUSH_DEBOUNCE_MS = 2000;
 
@@ -29,8 +26,18 @@ export default class MuninnPlugin extends Plugin {
     private flushInProgress: Promise<void> | null = null;
     private reindexInProgress: Promise<ReindexResult | null> | null = null;
     private shuttingDown = false;
+    settings: MuninnSettings = { ...DEFAULT_SETTINGS };
 
     async onload(): Promise<void> {
+        try {
+            const saved = await this.loadData();
+            this.settings = sanitizeSettings(saved);
+        } catch (e) {
+            // eslint-disable-next-line no-console
+            console.warn('[Muninn] failed to load settings, using defaults:', e);
+            this.settings = { ...DEFAULT_SETTINGS };
+        }
+
         const cachePath = this.getCachePath();
         this.cachePath = cachePath;
         const cacheDir = cachePath.substring(0, cachePath.lastIndexOf('/'));
@@ -68,7 +75,7 @@ export default class MuninnPlugin extends Plugin {
             return;
         }
 
-        const embedClient = new OllamaEmbedClient();
+        const embedClient = new OllamaEmbedClient(this.settings);
         this.lane = this.createLane(this.app.vault, embedClient);
         this.api = createMuninnApi(
             this.store,
@@ -140,6 +147,8 @@ export default class MuninnPlugin extends Plugin {
                     });
             },
         });
+
+        this.addSettingTab(new MuninnSettingTab(this.app, this));
     }
 
     onunload(): void {
@@ -191,7 +200,7 @@ export default class MuninnPlugin extends Plugin {
             store: this.store!,
             source: new ObsidianFileSource(vault),
             embedClient,
-            modelTag: MODEL_TAG,
+            modelTag: modelTag(this.settings),
             epoch: 1,
             chunkerCp: CHUNKER_CP,
         });
@@ -289,19 +298,22 @@ class ObsidianFileSource implements FileSource {
 // ---------------------------------------------------------------------------
 
 class OllamaEmbedClient implements EmbedClient {
-    private endpoint = 'http://localhost:11434/api/embed';
-    private timeoutMs = 30000;
+    private settings: MuninnSettings;
+
+    constructor(settings: MuninnSettings) {
+        this.settings = settings;
+    }
 
     async embed(inputs: { vh: string; text: string }[]): Promise<EmbeddingRecord[] | null> {
         // Obsidian plugins run in a browser-like renderer; fetch is global.
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
+        const timeout = setTimeout(() => controller.abort(), this.settings.embedTimeoutMs);
         try {
-            const res = await fetch(this.endpoint, {
+            const res = await fetch(`${this.settings.ollamaUrl}/api/embed`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    model: 'nomic-embed-text:v1.5',
+                    model: this.settings.ollamaModel,
                     input: inputs.map((i) => i.text),
                     keep_alive: '-1m',
                 }),
@@ -322,7 +334,7 @@ class OllamaEmbedClient implements EmbedClient {
                     vh: inputs[i]?.vh ?? '',
                     vector: new Uint8Array(floats.buffer),
                     dim: floats.length,
-                    model_tag: MODEL_TAG,
+                    model_tag: modelTag(this.settings),
                     epoch: 1,
                 };
             });
@@ -339,5 +351,75 @@ class OllamaEmbedClient implements EmbedClient {
         } finally {
             clearTimeout(timeout);
         }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Settings tab
+// ---------------------------------------------------------------------------
+
+class MuninnSettingTab extends PluginSettingTab {
+    private plugin: MuninnPlugin;
+
+    constructor(app: unknown, plugin: MuninnPlugin) {
+        super(app as never, plugin);
+        this.plugin = plugin;
+    }
+
+    display(): void {
+        const { containerEl } = this;
+        containerEl.empty();
+
+        containerEl.createEl('h2', { text: 'Muninn Settings' });
+
+        new Setting(containerEl)
+            .setName('Ollama base URL')
+            .setDesc('Base URL for the Ollama API, without trailing slash.')
+            .addText((text) => text
+                .setPlaceholder('http://localhost:11434')
+                .setValue(this.plugin.settings.ollamaUrl)
+                .onChange(async (value) => {
+                    this.plugin.settings.ollamaUrl = value.replace(/\/$/, '');
+                    await this.plugin.saveData(this.plugin.settings);
+                }));
+
+        new Setting(containerEl)
+            .setName('Embedding model')
+            .setDesc('Ollama model used for semantic search embeddings.')
+            .addText((text) => text
+                .setPlaceholder('nomic-embed-text:v1.5')
+                .setValue(this.plugin.settings.ollamaModel)
+                .onChange(async (value) => {
+                    this.plugin.settings.ollamaModel = value;
+                    await this.plugin.saveData(this.plugin.settings);
+                }));
+
+        new Setting(containerEl)
+            .setName('Embedding timeout (ms)')
+            .setDesc('Abort embedding requests after this many milliseconds.')
+            .addText((text) => text
+                .setPlaceholder('30000')
+                .setValue(String(this.plugin.settings.embedTimeoutMs))
+                .onChange(async (value) => {
+                    const n = Number(value);
+                    if (Number.isFinite(n) && n > 0) {
+                        this.plugin.settings.embedTimeoutMs = n;
+                        await this.plugin.saveData(this.plugin.settings);
+                    }
+                }));
+
+        new Setting(containerEl)
+            .setName('Embedding dimensions')
+            .setDesc('Vector dimension of the chosen embedding model.')
+            .addText((text) => text
+                .setPlaceholder('768')
+                .setValue(String(this.plugin.settings.embedDim))
+                .onChange(async (value) => {
+                    const n = Number(value);
+                    if (Number.isFinite(n) && n > 0) {
+                        this.plugin.settings.embedDim = n;
+                        await this.plugin.saveData(this.plugin.settings);
+                    }
+                }));
     }
 }

@@ -1,6 +1,6 @@
-# Muninn v0.2.0-test.7 — Manual Testing Scenario
+# Muninn — Manual Testing Scenario
 
-Use this document to smoke-test the Plugin 1 build in Obsidian with the developer console open. Install the plugin via BRAT from the GitHub release tag `0.2.0-test.7`.
+Use this document to smoke-test the Plugin 1 build in Obsidian with the developer console open. For released builds, install the plugin via BRAT from the latest GitHub prerelease tag. For unreleased changes (settings UI, coalescing), build from source and copy `main.js`, `manifest.json`, and `styles.css` into `.obsidian/plugins/muninn`. This scenario covers features current as of the post-`0.2.0-test.7` main branch.
 
 ## Environment
 
@@ -13,9 +13,10 @@ Use this document to smoke-test the Plugin 1 build in Obsidian with the develope
 
 1. Install and enable the BRAT plugin in the test vault if not already present.
 2. In BRAT, choose **Add Beta Plugin** and enter: `iconoclast27/Muninn`.
-3. BRAT should fetch the release for tag `0.2.0-test.6`. If it offers a version picker, select `0.2.0-test.6`.
+3. BRAT should fetch the latest release. If it offers a version picker, select the latest test tag.
 4. Enable **Muninn** in Community Plugins.
 5. Keep the console open.
+6. For unreleased builds, instead of BRAT copy the built `main.js`, `manifest.json`, and `styles.css` into `.obsidian/plugins/muninn/` and reload Obsidian.
 
 ## Scenario A — Plugin load and initial reindex
 
@@ -223,6 +224,27 @@ console.log('rename search:', plugin.api.searchText('your-word'));
 - Console shows `[Muninn] Ollama embed timed out` or `[Muninn] Ollama embed failed:`.
 - Plugin remains enabled.
 - `searchSemantic` returns `null` with a reason, not an exception.
+
+## Scenario K — Settings UI
+
+### Conditions
+- Plugin is enabled.
+- A build that includes the Muninn settings tab (post-`0.2.0-test.7`).
+
+### Steps
+1. Open **Settings** → **Community plugins** → **Muninn**.
+2. Change the **Ollama base URL** to a different host or port (e.g., `http://192.168.1.10:11434`).
+3. Change the **Embedding model** to another valid model name (e.g., `mxbai-embed-large`).
+4. Change the **Embedding timeout (ms)** to `60000`.
+5. Close settings, then reopen the Muninn settings tab.
+6. Run **Muninn: Force reindex vault**.
+
+### Expected results
+- The settings tab is listed under **Community plugins** as **Muninn**.
+- Reopening the tab shows the values you entered (settings are persisted via `Plugin.saveData`).
+- A trailing slash on the Ollama URL is stripped automatically.
+- `forceReindex` sends embedding requests to the configured URL and model.
+- Console shows `[Muninn] force reindex complete:` with the result.
 
 ## What to capture
 

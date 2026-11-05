@@ -146,7 +146,7 @@ export function createMuninnApi(
                 return fail('embedder failed on query');
             }
             const rec = fetched[0];
-            if (rec.dim !== 768 || rec.vector.length === 0) {
+            if (rec.vector.length === 0 || rec.dim <= 0) {
                 return fail('embedder returned invalid query vector');
             }
             const qv = new Float32Array(rec.vector.buffer, rec.vector.byteOffset, rec.dim);
