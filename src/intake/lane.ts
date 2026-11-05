@@ -409,9 +409,17 @@ export class IntakeLane {
     private async embedMissing(missing: Array<{ vh: string; text: string }>): Promise<number> {
         if (missing.length === 0 || this.embedClient === null) return 0;
         let embedded = 0;
+        let failedLogged = false;
         for (const batch of chunk(missing, 8)) {
             const fetched = await this.embedClient.embed(batch);
-            if (fetched === null) continue;
+            if (fetched === null) {
+                if (!failedLogged) {
+                    failedLogged = true;
+                    // eslint-disable-next-line no-console
+                    console.warn('[Muninn] lane embed failed: embedder returned null; remaining missing embeddings skipped');
+                }
+                continue;
+            }
             const valid = fetched.filter((r) => this.isValidEmbedding(r));
             this.store.insertEmbeddings(valid);
             embedded += valid.length;
