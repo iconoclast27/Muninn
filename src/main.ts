@@ -7,13 +7,15 @@
 // versions.json live alongside it in the plugin folder.
 // =============================================================================
 
-import { Plugin, normalizePath, TFile, TFolder, Setting, PluginSettingTab, type Vault, type TAbstractFile } from 'obsidian';
+import { Plugin, normalizePath, TFile, TFolder, Setting, PluginSettingTab, WorkspaceLeaf, type Vault, type TAbstractFile } from 'obsidian';
 import { openStore } from './store/store.ts';
 import type { Store, EmbeddingRecord } from './store/store.ts';
 import { IntakeLane, type FileSource, type FileEntry } from './intake/lane.ts';
 import { createMuninnApi, laneReindexer, type MuninnApi, type EmbedClient, type ReindexResult } from './api.ts';
 import { CHUNKER_CP } from './chunker/chunker.ts';
 import { DEFAULT_SETTINGS, sanitizeSettings, modelTag, type MuninnSettings } from './settings.ts';
+import { MuninnSearchView, MUNINN_VIEW_TYPE } from './ui/search-view.ts';
+import { createSearchHost, type FileOpener } from './ui/search-controller.ts';
 
 const FLUSH_DEBOUNCE_MS = 2000;
 
@@ -148,6 +150,23 @@ export default class MuninnPlugin extends Plugin {
             },
         });
 
+        this.addCommand({
+            id: 'open-search-view',
+            name: 'Open search view',
+            callback: () => {
+                void this.openSearchView();
+            },
+        });
+
+        this.registerView(
+            MUNINN_VIEW_TYPE,
+            (leaf) => new MuninnSearchView(leaf, createSearchHost(this.api!, this.createFileOpener())),
+        );
+
+        this.addRibbonIcon('search', 'Muninn search', () => {
+            void this.openSearchView();
+        });
+
         this.addSettingTab(new MuninnSettingTab(this.app, this));
     }
 
@@ -193,6 +212,24 @@ export default class MuninnPlugin extends Plugin {
         }
         // Fallback for environments that do not populate manifest.dir.
         return `${this.app.vault.configDir}/plugins/${this.manifest.id}/cache/index.db`;
+    }
+
+    private createFileOpener(): FileOpener {
+        return {
+            openFile: async (file: TFile): Promise<void> => {
+                await this.app.workspace.getLeaf().openFile(file);
+            },
+            getAbstractFileByPath: (path: string): TAbstractFile | null => {
+                return this.app.vault.getAbstractFileByPath(path);
+            },
+        };
+    }
+
+    private async openSearchView(): Promise<void> {
+        const leaf = this.app.workspace.getRightLeaf(false);
+        if (leaf === null) return;
+        await leaf.setViewState({ type: MUNINN_VIEW_TYPE, active: true });
+        this.app.workspace.revealLeaf(leaf);
     }
 
     private createLane(vault: Vault, embedClient: EmbedClient): IntakeLane {

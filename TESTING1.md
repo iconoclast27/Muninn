@@ -246,6 +246,30 @@ console.log('rename search:', plugin.api.searchText('your-word'));
 - `forceReindex` sends embedding requests to the configured URL and model.
 - Console shows `[Muninn] force reindex complete:` with the result.
 
+## Scenario L — Sidebar search view
+
+### Conditions
+- Plugin is enabled and the build includes the sidebar search view.
+- The vault has at least a few indexed markdown notes.
+- Ollama is running if testing semantic search.
+
+### Steps
+1. Click the **Muninn search** ribbon icon (magnifying glass) or run **Muninn: Open search view** from the command palette.
+2. Type a distinctive word that appears in your notes and press Enter while **Text** mode is selected.
+3. Click the **Semantic** button and type a related concept, then press Enter.
+4. Click a result title to open the note.
+5. Click the **Reindex** button and wait for it to finish.
+6. Close the right sidebar, then reopen the search view via the ribbon icon.
+
+### Expected results
+- A **Muninn Search** leaf opens in the right sidebar.
+- The view shows mode buttons (**Text** / **Semantic**), a search input, a **Reindex** button, a status line, and result cards.
+- Text search returns result cards with the matching note title, path, chunk number, and a text snippet.
+- Semantic search returns ranked result cards when Ollama is available; returns a status error if Ollama is unavailable.
+- Clicking a result title opens the corresponding note in a new leaf.
+- Reindex shows a progress status (`Reindexing... walk N/N`) and completes without an exception.
+- Reopening the view from the ribbon icon restores the same empty or populated state.
+
 ## What to capture
 
 For each scenario, record:
@@ -260,8 +284,6 @@ For each scenario, record:
 - Persistence is **debounced**: changes are flushed to disk 2 seconds after the last store mutation. A crash or forced Obsidian quit within that window may lose recent changes.
 - The `onunload` flush is best-effort and asynchronous; Obsidian does not wait for it. Run **Force reindex vault** or wait a few seconds after your last edit before quitting to maximize durability.
 - Semantic search is brute-force over all embeddings in JavaScript, capped at 10k chunks. Large vaults may freeze briefly.
-- The plugin has no settings UI; Ollama endpoint and timeout are hardcoded (`localhost:11434`, 30s).
-- No sidebar UI yet; all search must go through the console API.
 
 ## Fixed in this build
 

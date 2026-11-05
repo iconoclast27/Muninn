@@ -1,1 +1,98 @@
-/* Muninn — plugin styles (currently empty) */
+/* Muninn — plugin styles */
+
+/* Sidebar search view */
+.muninn-search-view {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 0.5em;
+}
+
+.muninn-search-header {
+    flex: 0 0 auto;
+}
+
+.muninn-search-mode-row {
+    display: flex;
+    gap: 0.5em;
+    margin-bottom: 0.5em;
+}
+
+.muninn-mode-button,
+.muninn-reindex-button {
+    flex: 1 1 auto;
+    padding: 0.4em 0.6em;
+    cursor: pointer;
+}
+
+.muninn-mode-active {
+    font-weight: bold;
+    text-decoration: underline;
+}
+
+.muninn-search-input-row {
+    margin-bottom: 0.5em;
+}
+
+.muninn-search-input {
+    width: 100%;
+    padding: 0.4em;
+    box-sizing: border-box;
+}
+
+.muninn-search-status {
+    flex: 0 0 auto;
+    font-size: 0.9em;
+    margin-bottom: 0.5em;
+}
+
+.muninn-status-error {
+    color: var(--text-error);
+}
+
+.muninn-status-info {
+    color: var(--text-muted);
+}
+
+.muninn-search-results {
+    flex: 1 1 auto;
+    overflow-y: auto;
+}
+
+.muninn-no-results {
+    color: var(--text-muted);
+    font-style: italic;
+    padding: 1em 0;
+}
+
+.muninn-hit-card {
+    padding: 0.5em;
+    margin-bottom: 0.5em;
+    border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.muninn-hit-title {
+    font-weight: bold;
+    margin-bottom: 0.2em;
+}
+
+.muninn-hit-link {
+    color: var(--text-accent);
+    text-decoration: none;
+}
+
+.muninn-hit-link:hover {
+    text-decoration: underline;
+}
+
+.muninn-hit-meta {
+    font-size: 0.8em;
+    color: var(--text-muted);
+    margin-bottom: 0.3em;
+}
+
+.muninn-hit-text {
+    font-size: 0.9em;
+    line-height: 1.4;
+    white-space: pre-wrap;
+}
