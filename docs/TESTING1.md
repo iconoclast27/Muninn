@@ -1,6 +1,6 @@
 # Muninn — Manual Testing Scenario
 
-Use this document to smoke-test the Plugin 1 build in Obsidian with the developer console open. For released builds, install the plugin via BRAT from the latest GitHub prerelease tag. For unreleased changes (settings UI, coalescing), build from source and copy `main.js`, `manifest.json`, and `styles.css` into `.obsidian/plugins/muninn`. This scenario covers features current as of the post-`0.2.0-test.7` main branch.
+Use this document to smoke-test the Plugin 1 build in Obsidian with the developer console open. For released builds, install the plugin via BRAT from the latest GitHub prerelease tag. For unreleased changes, build from source and copy `main.js`, `manifest.json`, and `styles.css` into `.obsidian/plugins/muninn`.
 
 ## Environment
 

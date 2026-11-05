@@ -1,7 +1,7 @@
 # Muninn — Store Rewrite Specification
 
-**Status:** Draft v3 — pending sign-off  
-**Date:** 2026-11-03  
+**Status:** Draft v3 — ratified as-built (signed off 2026-11-04; amended 2026-11-05)
+**Date:** 2026-11-03
 **Purpose:** Define the index database schema, API surface, and behavioral invariants for Muninn (v0.2, clean start). Supersedes legacy `src/fts/store.ts` and its schema.
 
 ```text
@@ -21,6 +21,7 @@ against this spec.
 4. WASM sqlite lacks better-sqlite3's automatic `.all()`-throws-on-mutation guard — §4.8 `query()` gets an explicit first-keyword allowlist.
 5. **FTS5 virtual-table rename:** `UPDATE chunk_fts SET path = ...` is not reliable when the table has multiple `UNINDEXED` columns (§3, §5.3). Implementation renames the underlying `chunks`/`files` rows, then rebuilds affected FTS rows via `DELETE ... + INSERT ... SELECT ... FROM chunks`. The visible behavior — no re-chunk, no re-embed, identical content under the new path — remains unchanged.
 6. **Persistence seam:** §4.1 `open()` now accepts `{ load?: Uint8Array }` and a `serialize()` API door returns the full database bytes. The runtime DB is `:memory:`; durability is provided by importing/exporting bytes through an external storage adapter (e.g. Obsidian `Vault.adapter`). WAL pragmas remain for compatibility but are inert on `:memory:`.
+7. **Settings UI and sidebar search view (as-built 2026-11-05):** The public API shapes in §6 (`searchText`, `searchSemantic`, `relatedChunks`, `tagVocabulary`) are consumed by the Obsidian Plugin 1 settings tab (`src/main.ts`) and the sidebar search view (`src/ui/search-view.ts`). Settings are persisted via Obsidian's `Plugin.saveData`; the view is a DOM-based `ItemView` with text/semantic mode toggle, search input, reindex button, and clickable result cards.
 
 ---
 

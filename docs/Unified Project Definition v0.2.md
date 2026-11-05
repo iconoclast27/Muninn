@@ -41,7 +41,7 @@ chunks	(path, ord)	occurrence rows keyed by vh for dedupe
 embeddings	vh (PK)	vector BLOB, dim, model_tag, epoch
 tags	vh (PK)	JSON array of canonical tags derived from fm_context
 fts	rowid	FTS5 virtual, trigram, self-contained (F15 ruling stands)
-notices	id	capped ring-buffer: dark conditions, stale-skip tallies (deferred)
+notices	id	capped ring-buffer: dark conditions, stale-skip tallies (deferred; not yet implemented)
 
 Keying embeddings and tags by vh, not path: they survive renames and partial edits. Epoch bumps (chunker or embedder change) cause clean full re-embeds, never mysteries.
 Boot and runtime
@@ -55,13 +55,13 @@ Boot and runtime
 Containment, disposal, darkness-warning, and stat() survive from the 2026-11-02 wiring; eventsDir inputs die.
 Search modes
 
-    Text: FTS5 trigram, BM25. Named limitation (receipt): trigram needs ≥3 chars — shorter queries miss silently. Policy owed (fallback or UI guard).
+    Text: FTS5 trigram, BM25. For queries shorter than a full trigram, the API falls back to a substring scan for 2-char queries and returns `null` with reason for empty or 1-char queries (fixture F04).
     Semantic: query → Ollama embed (local, Dan's standing embedder; specifics = receipt owed) → cosine scan of embeddings. Brute force at vault scale; ANN later if receipts demand.
     Hybrid (text filter, vector rank): later, natural.
 
 UI
 
-Sidebar pane (query, mode toggle, debounced typing, scored results, click-to-open — live-receipt-proven when built). Settings: engine status, manual reindex button (wipe → full walk → full embed, with confirmation and progress), embedder display, darkness warning.
+Sidebar pane (query, mode toggle, debounced typing, scored results, click-to-open) — implemented 2026-11-05 as `MuninnSearchView` in `src/ui/search-view.ts`, registered in `src/main.ts` with ribbon icon and command. Settings tab implemented 2026-11-05 for Ollama base URL, embedding model, timeout, and dimension (`src/settings.ts`, wired in `src/main.ts`).
 Public API (freeze before Plugin 2 builds)
 
 Harness-facing, typed, dark-safe (null + reason, never throws):
@@ -103,16 +103,16 @@ Curation and assistance only. One recipe, one output contract, or it isn't a v1 
 Joint build order (the two plugins are one arc)
 
     Ollama embed spike — endpoint, batch shape, model tag convention; receipted by F06.
-    WASM import-from-bytes receipt — export is proven, round-trip is still owed.
-    Corpus sweep — fixture-by-fixture keep/retire/rewrite ruling list; F01–F11 retained, spine fixtures retired.
-    Demolition + store rewrite — the driver swap behind the type-only seam; F15 scenarios re-pointed to the walk; re-certification treated as real.
-    Index green end-to-end on Desktop — sidebar search live receipt, manual reindex live receipt.
+    WASM import-from-bytes receipt — round-trip proven by F12 and F15 (Obsidian `Vault.adapter` round-trip).
+    Corpus sweep — fixture-by-fixture keep/retire/rewrite ruling list; F01–F22 retained, spine fixtures retired.
+    Demolition + store rewrite — complete; the store layer, public API, intake lane, and Obsidian plugin entry point are implemented and fixture-green.
+    Index green end-to-end on Desktop — sidebar search live receipt, manual reindex live receipt (pending Obsidian smoke test for the new sidebar view).
     Freeze the Plugin 1 API.
     Release for testing — tag and attach main.js + manifest.json.
     Plugin 2 harness skeleton — recipe loader, renderer, validator, diff gate.
     Skill #1 (tags) — first end-to-end proof of the model-judges doctrine.
     Remaining skills, corrections loop, then the deferred rulings revisit (write-class, notebook residency, mobile).
 
-Rulings owed to close this draft: trigram short-query policy · chunker determinism statement · corrections-notebook residency · manual reindex semantics · any veto on the demolition list.
+Rulings owed to close this draft: chunker determinism statement · corrections-notebook residency · manual reindex semantics · any veto on the demolition list.
 
 That's the unified draft — two parts, one spine-less whole, the coupling explicit at the API boundary and the build order. Per the Qwen feasibility question parked in the handover: note that steps 4–5 are exactly the escalation-ladder-shaped work a bounded local implementer could take on — single files, type-only seams, fixture referees — once you've ruled on the demolition list and the specs are frozen. Say the word on the five rulings or send corrections, and v0.2 graduates from draft to definition.
