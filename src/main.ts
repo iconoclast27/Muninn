@@ -221,6 +221,11 @@ export default class MuninnPlugin extends Plugin {
         return this.reindexInProgress !== null;
     }
 
+    /** Public API door for Huginn and other Plugin 2 consumers. Frozen shape. */
+    getMuninnApi(): MuninnApi | null {
+        return this.api;
+    }
+
     async forceReindexWithFlush(
         onProgress?: (p: ReindexProgress) => void,
         onDone?: (result: ReindexResult | null) => void,
