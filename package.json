@@ -1,6 +1,6 @@
 {
   "name": "muninn",
-  "version": "0.2.0-test.12",
+  "version": "0.2.0-test.13",
   "description": "Muninn — Plugin 1: vault index (text + semantic search)",
   "main": "main.js",
   "type": "module",

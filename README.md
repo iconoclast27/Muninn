@@ -4,7 +4,7 @@ Indexing plugin for Obsidian — paragraph-level vault chunking with SQLite WASM
 
 ## Current status
 
-Plugin 1 (vault index) is implemented and fixture-green. The latest released prerelease is **0.2.0-test.12**. It includes the Plugin 2 harness skeleton and Skill #1 (tag assignment, read-only suggest mode) against the frozen Plugin 1 API.
+Plugin 1 (vault index) is implemented and fixture-green. The latest released prerelease is **0.2.0-test.13**. It includes the Plugin 2 harness skeleton and Skill #1 (tag assignment, read-only suggest mode) against the frozen Plugin 1 API.
 
 ## Smoke testing
 

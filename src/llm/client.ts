@@ -54,7 +54,8 @@ export class OllamaChatClient implements LlmClient {
                         { role: 'user', content: prompt },
                     ],
                     stream: false,
-                    format: 'json',
+                    // Do not send "format": "json" — Ollama versions vary in how they
+                    // validate it, and the recipe's system prompt already demands raw JSON.
                 }),
                 signal: controller.signal,
             });
@@ -64,7 +65,7 @@ export class OllamaChatClient implements LlmClient {
                 return null;
             }
             const data = (await res.json()) as { message?: { content?: string } };
-            return data.message?.content?.trim() ?? null;
+            return stripJsonFences(data.message?.content?.trim() ?? '');
         } catch (e) {
             if ((e as Error).name === 'AbortError') {
                 // eslint-disable-next-line no-console
@@ -78,4 +79,12 @@ export class OllamaChatClient implements LlmClient {
             clearTimeout(timeout);
         }
     }
+}
+
+function stripJsonFences(text: string): string {
+    // Models sometimes wrap JSON in ```json ... ``` fences despite the
+    // instruction to return raw JSON only. Strip the outer fences.
+    const fenced = text.match(/^```(?:json)?\s*([\s\S]*?)```\s*$/);
+    if (fenced) return fenced[1].trim();
+    return text.trim();
 }
