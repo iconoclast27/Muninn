@@ -235,9 +235,11 @@ console.log('rename search:', plugin.api.searchText('your-word'));
 1. Open **Settings** → **Community plugins** → **Muninn**.
 2. Change the **Ollama base URL** to a different host or port (e.g., `http://192.168.1.10:11434`).
 3. Change the **Embedding model** to another valid model name (e.g., `mxbai-embed-large`).
-4. Change the **Embedding timeout (ms)** to `60000`.
-5. Close settings, then reopen the Muninn settings tab.
-6. Click **Force reindex** in the Muninn settings tab.
+4. Change the **Chat model** to a chat-capable model pulled locally (e.g., `qwen3.5:4b`). Do not use an embedding-only model here.
+5. Change the **Chat timeout (ms)** to `60000`.
+6. Change the **Embedding timeout (ms)** to `60000`.
+7. Close settings, then reopen the Muninn settings tab.
+8. Click **Force reindex** in the Muninn settings tab.
 
 ### Expected results
 - The settings tab is listed under **Community plugins** as **Muninn**.
@@ -301,6 +303,7 @@ For each scenario, record:
 - Plugin is enabled and the build includes the Plugin 2 harness.
 - The vault has at least a few indexed markdown notes, some with frontmatter tags (e.g., `tags: [ml, ops]`) and one note without tags to use as the target.
 - Ollama is running locally for the chat completion step.
+- The **Chat model** in Muninn settings is set to a chat-capable model pulled locally (e.g., `qwen3.5:4b`), not an embedding-only model.
 
 ### Steps
 1. In the vault root, create a folder `Agents/Huginn/SKILLS/`.

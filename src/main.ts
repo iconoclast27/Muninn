@@ -101,8 +101,9 @@ export default class MuninnPlugin extends Plugin {
         this.harness = new MuninnHarness({
             llmClient: new OllamaChatClient({
                 baseUrl: this.settings.ollamaUrl,
-                model: this.settings.ollamaModel,
+                model: this.settings.ollamaChatModel,
                 systemPrompt: 'You are a concise tagging assistant. Return raw JSON only.',
+                timeoutMs: this.settings.chatTimeoutMs,
             }),
             inputGatherer: new MuninnInputGatherer({ api: this.api }),
             approvalGate: new StaticApprovalGate(false), // default to reject in the skeleton
@@ -519,6 +520,31 @@ class MuninnSettingTab extends PluginSettingTab {
                 .onChange(async (value) => {
                     this.plugin.settings.ollamaModel = value;
                     await this.plugin.saveData(this.plugin.settings);
+                }));
+
+        new Setting(containerEl)
+            .setName('Chat model')
+            .setDesc('Ollama model used for Plugin 2 skill chat completions. Must be a chat-capable model, not an embedding model.')
+            .addText((text) => text
+                .setPlaceholder('qwen3.5:4b')
+                .setValue(this.plugin.settings.ollamaChatModel)
+                .onChange(async (value) => {
+                    this.plugin.settings.ollamaChatModel = value;
+                    await this.plugin.saveData(this.plugin.settings);
+                }));
+
+        new Setting(containerEl)
+            .setName('Chat timeout (ms)')
+            .setDesc('Abort chat completion requests after this many milliseconds.')
+            .addText((text) => text
+                .setPlaceholder('60000')
+                .setValue(String(this.plugin.settings.chatTimeoutMs))
+                .onChange(async (value) => {
+                    const n = Number(value);
+                    if (Number.isFinite(n) && n > 0) {
+                        this.plugin.settings.chatTimeoutMs = n;
+                        await this.plugin.saveData(this.plugin.settings);
+                    }
                 }));
 
         new Setting(containerEl)

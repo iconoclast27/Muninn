@@ -9,6 +9,8 @@
 export interface MuninnSettings {
     ollamaUrl: string;
     ollamaModel: string;
+    ollamaChatModel: string;
+    chatTimeoutMs: number;
     embedTimeoutMs: number;
     embedDim: number;
 }
@@ -16,6 +18,8 @@ export interface MuninnSettings {
 export const DEFAULT_SETTINGS: MuninnSettings = {
     ollamaUrl: 'http://localhost:11434',
     ollamaModel: 'nomic-embed-text:v1.5',
+    ollamaChatModel: 'qwen3.5:4b',
+    chatTimeoutMs: 60000,
     embedTimeoutMs: 30000,
     embedDim: 768,
 };
@@ -29,6 +33,12 @@ export function sanitizeSettings(raw: unknown): MuninnSettings {
     }
     if (typeof r.ollamaModel === 'string' && r.ollamaModel.length > 0) {
         out.ollamaModel = r.ollamaModel;
+    }
+    if (typeof r.ollamaChatModel === 'string' && r.ollamaChatModel.length > 0) {
+        out.ollamaChatModel = r.ollamaChatModel;
+    }
+    if (typeof r.chatTimeoutMs === 'number' && Number.isFinite(r.chatTimeoutMs) && r.chatTimeoutMs > 0) {
+        out.chatTimeoutMs = r.chatTimeoutMs;
     }
     if (typeof r.embedTimeoutMs === 'number' && Number.isFinite(r.embedTimeoutMs) && r.embedTimeoutMs > 0) {
         out.embedTimeoutMs = r.embedTimeoutMs;
