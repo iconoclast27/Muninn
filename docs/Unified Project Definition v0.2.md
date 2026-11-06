@@ -1,6 +1,6 @@
 Vault Overseer — Unified Project Definition v0.2 (Lean)
 
-Status: draft for ruling Date: 2026-11-03 Supersedes: the spine-centric architecture of the Project Definition (annotated, not deleted, once ruled) Companion: [[Tool & Skill Strategy]], [[Session Handover — 2026-11-02]], [[Lessons from the Incumbents — Comparison Doc v2]] Read this before: touching any component, recipe, fixture, or prompt — any model, any instance.
+Status: draft for ruling — Plugin 2 harness skeleton implemented 2026-11-06 Date: 2026-11-03 Supersedes: the spine-centric architecture of the Project Definition (annotated, not deleted, once ruled) Companion: [[Tool & Skill Strategy]], [[Session Handover — 2026-11-02]], [[Lessons from the Incumbents — Comparison Doc v2]] Read this before: touching any component, recipe, fixture, or prompt — any model, any instance.
 
 SUPERSESSION NOTE (added 2026-11-04, per Dan's ruling): The index store
 layer (schema §table definitions, FTS row addressing, store API) is
@@ -102,16 +102,16 @@ Scope guardrail
 Curation and assistance only. One recipe, one output contract, or it isn't a v1 skill. No agentic wandering, no chaining, no autonomous browsing — out of scope.
 Joint build order (the two plugins are one arc)
 
-    Ollama embed spike — endpoint, batch shape, model tag convention; receipted by F06.
-    WASM import-from-bytes receipt — round-trip proven by F12 and F15 (Obsidian `Vault.adapter` round-trip).
-    Corpus sweep — fixture-by-fixture keep/retire/rewrite ruling list; F01–F22 retained, spine fixtures retired.
-    Demolition + store rewrite — complete; the store layer, public API, intake lane, and Obsidian plugin entry point are implemented and fixture-green.
-    Index green end-to-end on Desktop — sidebar search live receipt, manual reindex live receipt (pending Obsidian smoke test for the new sidebar view).
-    Freeze the Plugin 1 API.
-    Release for testing — tag and attach main.js + manifest.json.
-    Plugin 2 harness skeleton — recipe loader, renderer, validator, diff gate.
-    Skill #1 (tags) — first end-to-end proof of the model-judges doctrine.
-    Remaining skills, corrections loop, then the deferred rulings revisit (write-class, notebook residency, mobile).
+    ✅ Ollama embed spike — endpoint, batch shape, model tag convention; receipted by F06.
+    ✅ WASM import-from-bytes receipt — round-trip proven by F12 and F15 (Obsidian `Vault.adapter` round-trip).
+    ✅ Corpus sweep — fixture-by-fixture keep/retire/rewrite ruling list; F01–F25 retained, spine fixtures retired.
+    ✅ Demolition + store rewrite — complete; the store layer, public API, intake lane, and Obsidian plugin entry point are implemented and fixture-green.
+    ✅ Index green end-to-end on Desktop — sidebar search live receipt (Scenario L) and settings reindex live receipt (Scenario K) verified for 0.2.0-test.9.
+    ✅ Freeze the Plugin 1 API — frozen 2026-11-06; policed by F24.
+    ✅ Release for testing — 0.2.0-test.9 tag with `main.js` + `manifest.json` + `versions.json`.
+    ✅ Plugin 2 harness skeleton — recipe loader, renderer, validator, diff gate, apply registry, LLM client abstraction, and harness orchestrator. See `docs/Plugin 2 Harness.md` and fixture F25.
+    ⏳ Skill #1 (tags) — first end-to-end proof of the model-judges doctrine.
+    ⏳ Remaining skills, corrections loop, then the deferred rulings revisit (write-class, notebook residency, mobile).
 
 Rulings owed to close this draft: chunker determinism statement · corrections-notebook residency · manual reindex semantics · any veto on the demolition list. The Plugin 1 public API is now frozen (2026-11-06); Plugin 2 may build against it.
 

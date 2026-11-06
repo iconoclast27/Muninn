@@ -17,6 +17,12 @@ import { DEFAULT_SETTINGS, sanitizeSettings, modelTag, type MuninnSettings } fro
 import { MuninnSearchView, MUNINN_VIEW_TYPE } from './ui/search-view.ts';
 import { createSearchHost, type FileOpener } from './ui/search-controller.ts';
 import { emptySearchState, type MuninnSearchState } from './ui/search-state.ts';
+import { MuninnHarness, ManualInputGatherer, StaticApprovalGate } from './harness/harness.ts';
+import { FakeLlmClient } from './llm/client.ts';
+import { createDefaultApplyRegistry } from './harness/apply.ts';
+import { ObsidianRecipeSource } from './recipes/obsidian-source.ts';
+import { loadRecipes } from './recipes/loader.ts';
+import type { LoadedRecipe } from './recipes/types.ts';
 
 const FLUSH_DEBOUNCE_MS = 2000;
 
@@ -24,6 +30,7 @@ export default class MuninnPlugin extends Plugin {
     private store: Store | null = null;
     private lane: IntakeLane | null = null;
     private api: MuninnApi | null = null;
+    private harness: MuninnHarness | null = null;
     private cachePath: string | null = null;
     private flushTimer: number | null = null;
     private flushInProgress: Promise<void> | null = null;
@@ -87,6 +94,16 @@ export default class MuninnPlugin extends Plugin {
             laneReindexer(this.lane),
         );
 
+        // Plugin 2 harness skeleton. Lives on the plugin instance, not the
+        // frozen MuninnApi. Uses a fake LLM client for this skeleton; real
+        // client wiring comes when Huginn is set up.
+        this.harness = new MuninnHarness({
+            llmClient: new FakeLlmClient(JSON.stringify({ tag: 'ml', confidence: 0.9 })),
+            inputGatherer: new ManualInputGatherer(new Map()),
+            approvalGate: new StaticApprovalGate(false), // default to reject in the skeleton
+            applyRegistry: createDefaultApplyRegistry(),
+        });
+
         // Register vault event handlers inside onLayoutReady so we skip the
         // initial create storm for every existing file.
         this.app.workspace.onLayoutReady(() => {
@@ -133,6 +150,14 @@ export default class MuninnPlugin extends Plugin {
             name: 'Open search view',
             callback: () => {
                 void this.openSearchView();
+            },
+        });
+
+        this.addCommand({
+            id: 'run-test-recipe',
+            name: 'Run Muninn test recipe',
+            callback: () => {
+                void this.runTestRecipe();
             },
         });
 
@@ -269,6 +294,27 @@ export default class MuninnPlugin extends Plugin {
         if (leaf === null) return;
         await leaf.setViewState({ type: MUNINN_VIEW_TYPE, active: true, state: this.lastSearchState });
         this.app.workspace.revealLeaf(leaf);
+    }
+
+    private async runTestRecipe(): Promise<void> {
+        if (this.harness === null) {
+            // eslint-disable-next-line no-console
+            console.warn('[Muninn] harness not initialized');
+            return;
+        }
+        const recipeSource = new ObsidianRecipeSource(this.app.vault, '.huginn/recipes');
+        const loadResult = await loadRecipes(recipeSource);
+        if (loadResult.recipes.length === 0) {
+            // eslint-disable-next-line no-console
+            console.log('[Muninn] no recipes in .huginn/recipes/ to run');
+            return;
+        }
+        const recipe: LoadedRecipe = loadResult.recipes[0] as LoadedRecipe;
+        // eslint-disable-next-line no-console
+        console.log('[Muninn] running test recipe:', recipe.metadata.name);
+        const result = await this.harness.run(recipe, {}, {});
+        // eslint-disable-next-line no-console
+        console.log('[Muninn] recipe result:', result);
     }
 
     private createLane(vault: Vault, embedClient: EmbedClient): IntakeLane {
