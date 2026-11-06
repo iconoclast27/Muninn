@@ -235,11 +235,9 @@ console.log('rename search:', plugin.api.searchText('your-word'));
 1. Open **Settings** → **Community plugins** → **Muninn**.
 2. Change the **Ollama base URL** to a different host or port (e.g., `http://192.168.1.10:11434`).
 3. Change the **Embedding model** to another valid model name (e.g., `mxbai-embed-large`).
-4. Change the **Chat model** to a chat-capable model pulled locally (e.g., `qwen3.5:4b`). Do not use an embedding-only model here.
-5. Change the **Chat timeout (ms)** to `60000`.
-6. Change the **Embedding timeout (ms)** to `60000`.
-7. Close settings, then reopen the Muninn settings tab.
-8. Click **Force reindex** in the Muninn settings tab.
+4. Change the **Embedding timeout (ms)** to `60000`.
+5. Close settings, then reopen the Muninn settings tab.
+6. Click **Force reindex** in the Muninn settings tab.
 
 ### Expected results
 - The settings tab is listed under **Community plugins** as **Muninn**.
@@ -297,40 +295,14 @@ For each scenario, record:
   - **L1:** `cosineSimilarity` now rejects dimension-mismatched vectors instead of silently truncating.
   - **L6:** The `fail()` helper's comment no longer promises an accessor that does not exist.
 
-## Scenario M — Tag assignment skill (read-only suggest)
+## Scenario M — Tag assignment skill (moved to Huginn)
 
-### Conditions
-- Plugin is enabled and the build includes the Plugin 2 harness.
-- The vault has at least a few indexed markdown notes, some with frontmatter tags (e.g., `tags: [ml, ops]`) and one note without tags to use as the target.
-- Ollama is running locally for the chat completion step.
-- The **Chat model** in Muninn settings is set to a chat-capable model pulled locally (e.g., `qwen3.5:4b`), not an embedding-only model.
+Plugin 2 skills and chat completions have moved to the separate **Huginn** plugin. The **Muninn: Run test recipe** command is no longer present in Muninn. To test tag assignment:
 
-### Steps
-1. In the vault root, create a folder `Agents/Huginn/SKILLS/`.
-2. Copy `src/recipes/tag-assignment.md` from the Muninn source into `Agents/Huginn/SKILLS/tag-assignment.md`.
-3. Open the command palette and run **Muninn: Run test recipe**.
-4. Watch the console for the `RecipeRunResult` object.
+1. Install and enable **Huginn** from `iconoclast27/Huginn` via BRAT.
+2. Follow `docs/TESTING1.md` in the Huginn repository.
 
-### Expected results
-- The command runs without uncaught exceptions.
-- Console logs: `[Muninn] running test recipe: tag-assignment`.
-- The `RecipeRunResult` shows:
-  - `schemaValid: true`
-  - `applyResult.applied: false` (the skill is read-only/suggest only)
-  - `applyResult.message` contains the proposed tag, e.g., `suggest-tags for tag-assignment: propose tag 'ml'`.
-- If no recipes are present, console logs: `[Muninn] no recipes in Agents/Huginn/SKILLS/ to run`.
-
-### Troubleshooting
-- If you see `recipe folder not found in vault index: Agents/Huginn/SKILLS`, the folder was likely created outside Obsidian and has not yet been indexed. Reload Obsidian or create the folder through Obsidian's file explorer.
-
-### Note on Huginn folder layout
-This skeleton uses the eventual Huginn vault-resident folder layout:
-- `Agents/Huginn/SKILLS/` — skill recipes (Markdown with YAML frontmatter).
-- `Agents/Huginn/NOTEBOOK/` — corrections notebook (deferred; not yet implemented).
-- `Agents/Huginn/MEMORY/` — memory files (deferred; not yet implemented).
-
-### What this proves
-This is the first end-to-end Plugin 2 skill. It exercises the frozen Plugin 1 API (`tagVocabulary`, `relatedChunks`, `searchText`) as inputs to a recipe, validates the model's JSON output against the recipe schema, and returns a suggestion through the harness without modifying the vault.
+Muninn's role is now limited to indexing and exposing the frozen `MuninnApi` door via `getMuninnApi()`.
 
 ## Reporting results
 

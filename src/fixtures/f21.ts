@@ -41,23 +41,16 @@ function main(): void {
         sanitizeSettings({ ollamaUrl: 'http://192.168.1.10:11434' }).ollamaUrl === 'http://192.168.1.10:11434');
     check('S3 preserves valid model',
         sanitizeSettings({ ollamaModel: 'mxbai-embed-large' }).ollamaModel === 'mxbai-embed-large');
-    check('S3 preserves valid chat model',
-        sanitizeSettings({ ollamaChatModel: 'qwen3.5:4b' }).ollamaChatModel === 'qwen3.5:4b');
-    check('S3 preserves valid chat timeout',
-        sanitizeSettings({ chatTimeoutMs: 120000 }).chatTimeoutMs === 120000);
     check('S3 preserves valid timeout',
         sanitizeSettings({ embedTimeoutMs: 60000 }).embedTimeoutMs === 60000);
     check('S3 preserves valid dim',
         sanitizeSettings({ embedDim: 1024 }).embedDim === 1024);
 
-    check('S4 rejects negative chat timeout', sanitizeSettings({ chatTimeoutMs: -1 }).chatTimeoutMs === DEFAULT_SETTINGS.chatTimeoutMs);
-    check('S4 rejects NaN chat timeout', sanitizeSettings({ chatTimeoutMs: NaN }).chatTimeoutMs === DEFAULT_SETTINGS.chatTimeoutMs);
     check('S4 rejects negative timeout', sanitizeSettings({ embedTimeoutMs: -1 }).embedTimeoutMs === DEFAULT_SETTINGS.embedTimeoutMs);
     check('S4 rejects NaN timeout', sanitizeSettings({ embedTimeoutMs: NaN }).embedTimeoutMs === DEFAULT_SETTINGS.embedTimeoutMs);
     check('S4 rejects zero dim', sanitizeSettings({ embedDim: 0 }).embedDim === DEFAULT_SETTINGS.embedDim);
     check('S4 rejects string timeout', sanitizeSettings({ embedTimeoutMs: '1000' as unknown as number }).embedTimeoutMs === DEFAULT_SETTINGS.embedTimeoutMs);
     check('S4 rejects empty model', sanitizeSettings({ ollamaModel: '' }).ollamaModel === DEFAULT_SETTINGS.ollamaModel);
-    check('S4 rejects empty chat model', sanitizeSettings({ ollamaChatModel: '' }).ollamaChatModel === DEFAULT_SETTINGS.ollamaChatModel);
     check('S4 rejects empty URL', sanitizeSettings({ ollamaUrl: '' }).ollamaUrl === DEFAULT_SETTINGS.ollamaUrl);
 
     check('S5 modelTag matches ollama/model format',

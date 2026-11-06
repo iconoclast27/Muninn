@@ -17,13 +17,6 @@ import { DEFAULT_SETTINGS, sanitizeSettings, modelTag, type MuninnSettings } fro
 import { MuninnSearchView, MUNINN_VIEW_TYPE } from './ui/search-view.ts';
 import { createSearchHost, type FileOpener } from './ui/search-controller.ts';
 import { emptySearchState, type MuninnSearchState } from './ui/search-state.ts';
-import { MuninnHarness, StaticApprovalGate } from './harness/harness.ts';
-import { MuninnInputGatherer } from './harness/gather.ts';
-import { OllamaChatClient } from './llm/client.ts';
-import { createDefaultApplyRegistry } from './harness/apply.ts';
-import { ObsidianRecipeSource } from './recipes/obsidian-source.ts';
-import { loadRecipes } from './recipes/loader.ts';
-import type { LoadedRecipe } from './recipes/types.ts';
 
 const FLUSH_DEBOUNCE_MS = 2000;
 
@@ -31,7 +24,6 @@ export default class MuninnPlugin extends Plugin {
     private store: Store | null = null;
     private lane: IntakeLane | null = null;
     private api: MuninnApi | null = null;
-    private harness: MuninnHarness | null = null;
     private cachePath: string | null = null;
     private flushTimer: number | null = null;
     private flushInProgress: Promise<void> | null = null;
@@ -95,20 +87,8 @@ export default class MuninnPlugin extends Plugin {
             laneReindexer(this.lane),
         );
 
-        // Plugin 2 harness skeleton. Lives on the plugin instance, not the
-        // frozen MuninnApi. Wired against the real Ollama chat endpoint for
-        // Skill #1; approval defaults to reject so the skill stays read-only.
-        this.harness = new MuninnHarness({
-            llmClient: new OllamaChatClient({
-                baseUrl: this.settings.ollamaUrl,
-                model: this.settings.ollamaChatModel,
-                systemPrompt: 'You are a concise tagging assistant. Return raw JSON only.',
-                timeoutMs: this.settings.chatTimeoutMs,
-            }),
-            inputGatherer: new MuninnInputGatherer({ api: this.api }),
-            approvalGate: new StaticApprovalGate(false), // default to reject in the skeleton
-            applyRegistry: createDefaultApplyRegistry(),
-        });
+        // Plugin 2 skill harness has moved to Huginn. Muninn exposes the
+        // frozen API door via getMuninnApi() for Huginn to consume.
 
         // Register vault event handlers inside onLayoutReady so we skip the
         // initial create storm for every existing file.
@@ -156,14 +136,6 @@ export default class MuninnPlugin extends Plugin {
             name: 'Open search view',
             callback: () => {
                 void this.openSearchView();
-            },
-        });
-
-        this.addCommand({
-            id: 'run-test-recipe',
-            name: 'Run Muninn test recipe',
-            callback: () => {
-                void this.runTestRecipe();
             },
         });
 
@@ -305,27 +277,6 @@ export default class MuninnPlugin extends Plugin {
         if (leaf === null) return;
         await leaf.setViewState({ type: MUNINN_VIEW_TYPE, active: true, state: this.lastSearchState });
         this.app.workspace.revealLeaf(leaf);
-    }
-
-    private async runTestRecipe(): Promise<void> {
-        if (this.harness === null) {
-            // eslint-disable-next-line no-console
-            console.warn('[Muninn] harness not initialized');
-            return;
-        }
-        const recipeSource = new ObsidianRecipeSource(this.app.vault, 'Agents/Huginn/SKILLS');
-        const loadResult = await loadRecipes(recipeSource);
-        if (loadResult.recipes.length === 0) {
-            // eslint-disable-next-line no-console
-            console.log('[Muninn] no recipes in Agents/Huginn/SKILLS/ to run');
-            return;
-        }
-        const recipe: LoadedRecipe = loadResult.recipes[0] as LoadedRecipe;
-        // eslint-disable-next-line no-console
-        console.log('[Muninn] running test recipe:', recipe.metadata.name);
-        const result = await this.harness.run(recipe, { targetPath: 'notes/gamma.md', titleQuery: recipe.metadata.name }, {});
-        // eslint-disable-next-line no-console
-        console.log('[Muninn] recipe result:', result);
     }
 
     private createLane(vault: Vault, embedClient: EmbedClient): IntakeLane {
@@ -525,31 +476,6 @@ class MuninnSettingTab extends PluginSettingTab {
                 .onChange(async (value) => {
                     this.plugin.settings.ollamaModel = value;
                     await this.plugin.saveData(this.plugin.settings);
-                }));
-
-        new Setting(containerEl)
-            .setName('Chat model')
-            .setDesc('Ollama model used for Plugin 2 skill chat completions. Must be a chat-capable model, not an embedding model.')
-            .addText((text) => text
-                .setPlaceholder('qwen3.5:4b')
-                .setValue(this.plugin.settings.ollamaChatModel)
-                .onChange(async (value) => {
-                    this.plugin.settings.ollamaChatModel = value;
-                    await this.plugin.saveData(this.plugin.settings);
-                }));
-
-        new Setting(containerEl)
-            .setName('Chat timeout (ms)')
-            .setDesc('Abort chat completion requests after this many milliseconds.')
-            .addText((text) => text
-                .setPlaceholder('60000')
-                .setValue(String(this.plugin.settings.chatTimeoutMs))
-                .onChange(async (value) => {
-                    const n = Number(value);
-                    if (Number.isFinite(n) && n > 0) {
-                        this.plugin.settings.chatTimeoutMs = n;
-                        await this.plugin.saveData(this.plugin.settings);
-                    }
                 }));
 
         new Setting(containerEl)
