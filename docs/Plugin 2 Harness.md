@@ -95,12 +95,13 @@ noop
 
 The harness lives as a private `MuninnHarness` property on `MuninnPlugin` in `src/main.ts`. It is **not** part of the frozen `MuninnApi`. A skeleton command, **"Run Muninn test recipe"**, loads the first `.md` recipe from `.huginn/recipes/` and logs the `RecipeRunResult` to the Obsidian console.
 
-The skeleton uses a fake LLM client and a no-op apply routine so it is safe to invoke without network calls or vault writes. Real LLM client wiring and write-class apply routines move to the Huginn repository when that plugin is scaffolded.
+The skeleton uses a fake LLM client by default, but `OllamaChatClient` is implemented in `src/llm/client.ts` for real chat completions to `localhost:11434/api/chat`. The `suggest-tags` apply routine returns a structured suggestion without writing to the vault; write-class apply routines are deferred per the Unified Project Definition gate ruling.
 
 ## What is owed
 
-- Real input gatherers that call `MuninnApi.searchText`, `searchSemantic`, `relatedChunks`, and `tagVocabulary`.
+- ✅ Real input gatherers that call `MuninnApi.searchText`, `searchSemantic`, `relatedChunks`, and `tagVocabulary` — `MuninnInputGatherer` in `src/harness/gather.ts`.
 - Ground-truth validation against vault files and frontmatter.
-- A real `LlmClient` adapter (Ollama chat first, per project doctrine of local-first).
-- First skill end-to-end: tag assignment.
+- ✅ A real `LlmClient` adapter — `OllamaChatClient` in `src/llm/client.ts`.
+- ✅ First skill end-to-end — tag assignment recipe + fixture F26.
+- Obsidian command to run a chosen recipe by name with a user-supplied target path.
 - Port of generic modules to Huginn once `~/Projects/Huginn` infrastructure is set up.

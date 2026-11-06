@@ -17,8 +17,9 @@ import { DEFAULT_SETTINGS, sanitizeSettings, modelTag, type MuninnSettings } fro
 import { MuninnSearchView, MUNINN_VIEW_TYPE } from './ui/search-view.ts';
 import { createSearchHost, type FileOpener } from './ui/search-controller.ts';
 import { emptySearchState, type MuninnSearchState } from './ui/search-state.ts';
-import { MuninnHarness, ManualInputGatherer, StaticApprovalGate } from './harness/harness.ts';
-import { FakeLlmClient } from './llm/client.ts';
+import { MuninnHarness, StaticApprovalGate } from './harness/harness.ts';
+import { MuninnInputGatherer } from './harness/gather.ts';
+import { OllamaChatClient } from './llm/client.ts';
 import { createDefaultApplyRegistry } from './harness/apply.ts';
 import { ObsidianRecipeSource } from './recipes/obsidian-source.ts';
 import { loadRecipes } from './recipes/loader.ts';
@@ -95,11 +96,15 @@ export default class MuninnPlugin extends Plugin {
         );
 
         // Plugin 2 harness skeleton. Lives on the plugin instance, not the
-        // frozen MuninnApi. Uses a fake LLM client for this skeleton; real
-        // client wiring comes when Huginn is set up.
+        // frozen MuninnApi. Wired against the real Ollama chat endpoint for
+        // Skill #1; approval defaults to reject so the skill stays read-only.
         this.harness = new MuninnHarness({
-            llmClient: new FakeLlmClient(JSON.stringify({ tag: 'ml', confidence: 0.9 })),
-            inputGatherer: new ManualInputGatherer(new Map()),
+            llmClient: new OllamaChatClient({
+                baseUrl: this.settings.ollamaUrl,
+                model: this.settings.ollamaModel,
+                systemPrompt: 'You are a concise tagging assistant. Return raw JSON only.',
+            }),
+            inputGatherer: new MuninnInputGatherer({ api: this.api }),
             approvalGate: new StaticApprovalGate(false), // default to reject in the skeleton
             applyRegistry: createDefaultApplyRegistry(),
         });
@@ -312,7 +317,7 @@ export default class MuninnPlugin extends Plugin {
         const recipe: LoadedRecipe = loadResult.recipes[0] as LoadedRecipe;
         // eslint-disable-next-line no-console
         console.log('[Muninn] running test recipe:', recipe.metadata.name);
-        const result = await this.harness.run(recipe, {}, {});
+        const result = await this.harness.run(recipe, { targetPath: 'notes/gamma.md', titleQuery: recipe.metadata.name }, {});
         // eslint-disable-next-line no-console
         console.log('[Muninn] recipe result:', result);
     }

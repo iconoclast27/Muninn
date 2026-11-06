@@ -28,6 +28,8 @@ export interface RecipeInput {
     description: string;
     /** Source of truth the harness gathers before rendering. */
     source: 'query' | 'path' | 'vocabulary' | 'constant' | 'recipe-param';
+    /** For source 'query', the input key whose value is the search string. */
+    queryKey?: string;
 }
 
 export interface RecipeOutputSchema {

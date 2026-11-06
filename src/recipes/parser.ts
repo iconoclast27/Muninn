@@ -157,6 +157,7 @@ function parseInputsSection(text: string | undefined, errors: string[]): RecipeI
         const key = extractYamlField(entry, 'key');
         const description = extractYamlField(entry, 'description');
         const source = extractYamlField(entry, 'source') as RecipeInput['source'] | undefined;
+        const queryKey = extractYamlField(entry, 'queryKey');
         if (!key || !description) {
             errors.push(`Invalid input entry (missing key or description): ${entry.slice(0, 40)}`);
             continue;
@@ -165,7 +166,9 @@ function parseInputsSection(text: string | undefined, errors: string[]): RecipeI
             errors.push(`Invalid input source for ${key}: ${source}`);
             continue;
         }
-        inputs.push({ key, description, source });
+        const input: RecipeInput = { key, description, source };
+        if (source === 'query' && queryKey) input.queryKey = queryKey;
+        inputs.push(input);
     }
     return inputs;
 }

@@ -42,5 +42,15 @@ export function createDefaultApplyRegistry(): ApplyRegistry {
             message: `no-op apply for ${recipe.metadata.name}: ${JSON.stringify(output).slice(0, 200)}`,
         };
     });
+    registry.register('suggest-tags', async (recipe, output): Promise<ApplyResult> => {
+        // v1 is suggest/read-only only. The harness returns a structured
+        // suggestion with no vault write. A future write-class gate would
+        // convert this into a frontmatter edit through Obsidian's APIs.
+        const typed = output as { tag?: string; reason?: string; confidence?: number };
+        return {
+            applied: false,
+            message: `suggest-tags for ${recipe.metadata.name}: propose tag '${typed.tag ?? 'none'}' (${typed.reason ?? 'no reason'}). No file was modified.`,
+        };
+    });
     return registry;
 }

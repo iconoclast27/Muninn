@@ -295,6 +295,31 @@ For each scenario, record:
   - **L1:** `cosineSimilarity` now rejects dimension-mismatched vectors instead of silently truncating.
   - **L6:** The `fail()` helper's comment no longer promises an accessor that does not exist.
 
+## Scenario M — Tag assignment skill (read-only suggest)
+
+### Conditions
+- Plugin is enabled and the build includes the Plugin 2 harness.
+- The vault has at least a few indexed markdown notes, some with frontmatter tags (e.g., `tags: [ml, ops]`) and one note without tags to use as the target.
+- Ollama is running locally for the chat completion step.
+
+### Steps
+1. In the vault root, create a folder `.huginn/recipes/`.
+2. Copy `src/recipes/tag-assignment.md` from the Muninn source into `.huginn/recipes/tag-assignment.md`.
+3. Open the command palette and run **Muninn: Run test recipe**.
+4. Watch the console for the `RecipeRunResult` object.
+
+### Expected results
+- The command runs without uncaught exceptions.
+- Console logs: `[Muninn] running test recipe: tag-assignment`.
+- The `RecipeRunResult` shows:
+  - `schemaValid: true`
+  - `applyResult.applied: false` (the skill is read-only/suggest only)
+  - `applyResult.message` contains the proposed tag, e.g., `suggest-tags for tag-assignment: propose tag 'ml'`.
+- If no recipes are present, console logs: `[Muninn] no recipes in .huginn/recipes/ to run`.
+
+### What this proves
+This is the first end-to-end Plugin 2 skill. It exercises the frozen Plugin 1 API (`tagVocabulary`, `relatedChunks`, `searchText`) as inputs to a recipe, validates the model's JSON output against the recipe schema, and returns a suggestion through the harness without modifying the vault.
+
 ## Reporting results
 
 Open a new chat with the scenario results, the Obsidian version, and any console output. Flag failures with the scenario letter and the verbatim console message.
