@@ -4,7 +4,7 @@ Indexing plugin for Obsidian — paragraph-level vault chunking with SQLite WASM
 
 ## Current status
 
-Plugin 1 (vault index) is implemented and fixture-green. The latest released prerelease is **0.2.0-test.7**. Local `main` has additional unreleased work: edit-event coalescing, a settings tab, and a sidebar search view.
+Plugin 1 (vault index) is implemented and fixture-green. The latest released prerelease is **0.2.0-test.8**. Local `main` has additional unreleased work: edit-event coalescing, a Muninn settings tab with a Force reindex button, a sidebar search view with restored state, and the frozen public API surface (locked 2026-11-06 for Plugin 2).
 
 ## Smoke testing
 
