@@ -307,11 +307,11 @@ export default class MuninnPlugin extends Plugin {
             console.warn('[Muninn] harness not initialized');
             return;
         }
-        const recipeSource = new ObsidianRecipeSource(this.app.vault, 'Muninn/Recipes');
+        const recipeSource = new ObsidianRecipeSource(this.app.vault, 'Agents/Huginn/SKILLS');
         const loadResult = await loadRecipes(recipeSource);
         if (loadResult.recipes.length === 0) {
             // eslint-disable-next-line no-console
-            console.log('[Muninn] no recipes in Muninn/Recipes/ to run');
+            console.log('[Muninn] no recipes in Agents/Huginn/SKILLS/ to run');
             return;
         }
         const recipe: LoadedRecipe = loadResult.recipes[0] as LoadedRecipe;

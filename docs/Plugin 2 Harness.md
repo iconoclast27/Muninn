@@ -93,7 +93,7 @@ noop
 
 ## Wiring into Muninn
 
-The harness lives as a private `MuninnHarness` property on `MuninnPlugin` in `src/main.ts`. It is **not** part of the frozen `MuninnApi`. A skeleton command, **"Run Muninn test recipe"**, loads the first `.md` recipe from `Muninn/Recipes/` and logs the `RecipeRunResult` to the Obsidian console.
+The harness lives as a private `MuninnHarness` property on `MuninnPlugin` in `src/main.ts`. It is **not** part of the frozen `MuninnApi`. A skeleton command, **"Run Muninn test recipe"**, loads the first `.md` recipe from `Agents/Huginn/SKILLS/` and logs the `RecipeRunResult` to the Obsidian console. This uses the eventual Huginn vault-resident folder layout.
 
 The skeleton uses a fake LLM client by default, but `OllamaChatClient` is implemented in `src/llm/client.ts` for real chat completions to `localhost:11434/api/chat`. The `suggest-tags` apply routine returns a structured suggestion without writing to the vault; write-class apply routines are deferred per the Unified Project Definition gate ruling.
 
