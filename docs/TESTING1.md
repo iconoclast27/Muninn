@@ -307,3 +307,12 @@ Muninn's role is now limited to indexing and exposing the frozen `MuninnApi` doo
 ## Reporting results
 
 Open a new chat with the scenario results, the Obsidian version, and any console output. Flag failures with the scenario letter and the verbatim console message.
+
+## Manual receipts
+
+**Date:** 2026-11-06
+
+- **Scenario K — Settings UI:** PASS. Settings update fine. Semantic search fails when the Ollama port is changed to an incorrect value, and works again once the correct port is restored. A major model change triggers re-embedding as expected.
+- **Scenario L — Sidebar search view:** PASS. Searching works in both text and semantic modes, the tab icon renders correctly, and the interface looks reasonable.
+
+These receipts were originally captured in `docs/testresults.md` and have been consolidated here. The raw file is archived in `docs/ARCHIVE/testresults-2026-11-06.md`.
