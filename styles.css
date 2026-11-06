@@ -18,8 +18,7 @@
     margin-bottom: 0.5em;
 }
 
-.muninn-mode-button,
-.muninn-reindex-button {
+.muninn-mode-button {
     flex: 1 1 auto;
     padding: 0.4em 0.6em;
     cursor: pointer;

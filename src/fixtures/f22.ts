@@ -6,7 +6,8 @@
 //   PASS requires:
 //     H1  createSearchHost forwards searchText to the API.
 //     H2  createSearchHost forwards searchSemantic to the API.
-//     H3  createSearchHost forwards forceReindex to the API.
+//     H3  createSearchHost does not expose forceReindex (reindex lives in
+//         settings, not the sidebar).
 //     H4  createSearchHost.openFile resolves the path through the opener and
 //         opens the returned TFile.
 //     H5  createSearchHost.openFile does nothing when the path does not exist.
@@ -18,7 +19,7 @@
 
 import { createSearchHost, type FileOpener } from '../ui/search-controller.ts';
 import type { TAbstractFile } from 'obsidian';
-import type { MuninnApi, Hit, TextSearchResult, SemanticSearchResult, ReindexResult, ReindexProgress } from '../api.ts';
+import type { MuninnApi, Hit, TextSearchResult, SemanticSearchResult } from '../api.ts';
 
 let failures = 0;
 function check(name: string, cond: boolean, detail?: string): void {
@@ -37,7 +38,6 @@ function fakeHit(path: string, ord: number): Hit {
 function fakeApi(opts: {
     textResult?: TextSearchResult | null;
     semanticResult?: SemanticSearchResult | null;
-    reindexResult?: ReindexResult | null;
 }): MuninnApi {
     return {
         searchText(query: string): TextSearchResult | null {
@@ -54,11 +54,8 @@ function fakeApi(opts: {
         tagVocabulary(): { tags: { tag: string; files: number; chunks: number }[] } | null {
             return { tags: [] };
         },
-        async forceReindex(onProgress?: (p: ReindexProgress) => void): Promise<ReindexResult | null> {
-            if (onProgress) {
-                onProgress({ phase: 'walk', done: 1, total: 1 });
-            }
-            return opts.reindexResult ?? null;
+        async forceReindex(): Promise<{ files: number; chunks: number; embedded: number; durationMs: number } | null> {
+            return { files: 0, chunks: 0, embedded: 0, durationMs: 0 };
         },
     };
 }
@@ -98,11 +95,8 @@ async function main(): Promise<void> {
     const h2 = await host2.searchSemantic('semantic query');
     check('H2 forwards searchSemantic', h2 !== null && h2.hits.length === 1, JSON.stringify(h2));
 
-    // H3
-    const api3 = fakeApi({ reindexResult: { files: 5, chunks: 10, embedded: 0, durationMs: 100 } });
-    const host3 = createSearchHost(api3, fakeOpener().opener);
-    const h3 = await host3.forceReindex();
-    check('H3 forwards forceReindex', h3 !== null && h3.files === 5, JSON.stringify(h3));
+    // H3 — forceReindex was removed from the sidebar host
+    check('H3 host has no forceReindex', !('forceReindex' in host1));
 
     // H4 / H5
     const opener = fakeOpener();

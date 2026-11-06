@@ -8,7 +8,7 @@
 // =============================================================================
 
 import type { TFile, TAbstractFile } from 'obsidian';
-import type { MuninnApi, ReindexProgress, ReindexResult, TextSearchResult, SemanticSearchResult } from '../api.ts';
+import type { MuninnApi, TextSearchResult, SemanticSearchResult } from '../api.ts';
 import type { MuninnSearchHost } from './search-view.ts';
 
 export interface FileOpener {
@@ -23,9 +23,6 @@ export function createSearchHost(api: MuninnApi, opener: FileOpener): MuninnSear
         },
         async searchSemantic(text: string): Promise<SemanticSearchResult | null> {
             return api.searchSemantic(text);
-        },
-        async forceReindex(onProgress?: (p: ReindexProgress) => void): Promise<ReindexResult | null> {
-            return api.forceReindex(onProgress);
         },
         async openFile(path: string): Promise<void> {
             const f = opener.getAbstractFileByPath(path);

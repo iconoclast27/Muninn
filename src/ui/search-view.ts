@@ -7,46 +7,45 @@
 // It consumes the frozen MuninnApi from the plugin instance.
 // =============================================================================
 
-import { ItemView, type WorkspaceLeaf, type TFile } from 'obsidian';
-import type { Hit, TextSearchResult, SemanticSearchResult, ReindexProgress, ReindexResult } from '../api.ts';
+import { ItemView, type WorkspaceLeaf, type ViewStateResult, type TFile } from 'obsidian';
+import type { Hit, TextSearchResult, SemanticSearchResult } from '../api.ts';
+import { emptySearchState, sanitizeSearchState, type MuninnSearchState } from './search-state.ts';
 
 export const MUNINN_VIEW_TYPE = 'muninn-search';
 
 export interface MuninnSearchHost {
     searchText(query: string): TextSearchResult | null;
     searchSemantic(text: string): Promise<SemanticSearchResult | null>;
-    forceReindex(onProgress?: (p: ReindexProgress) => void): Promise<ReindexResult | null>;
     openFile(path: string): Promise<void>;
 }
 
-interface SearchState {
+interface ViewSearchState {
     query: string;
     mode: 'text' | 'semantic';
     running: boolean;
-    reindexing: boolean;
     error: string | null;
     hits: Hit[];
 }
 
 export class MuninnSearchView extends ItemView {
     private host: MuninnSearchHost;
-    private state: SearchState;
+    private state: ViewSearchState;
     private container: HTMLElement | null = null;
     private inputEl: HTMLInputElement | null = null;
     private modeTextBtn: HTMLButtonElement | null = null;
     private modeSemanticBtn: HTMLButtonElement | null = null;
-    private reindexBtn: HTMLButtonElement | null = null;
     private statusEl: HTMLElement | null = null;
     private resultsEl: HTMLElement | null = null;
+    private onStateChange?: (state: MuninnSearchState) => void;
 
-    constructor(leaf: WorkspaceLeaf, host: MuninnSearchHost) {
+    constructor(leaf: WorkspaceLeaf, host: MuninnSearchHost, onStateChange?: (state: MuninnSearchState) => void) {
         super(leaf);
         this.host = host;
+        this.onStateChange = onStateChange;
         this.state = {
             query: '',
             mode: 'text',
             running: false,
-            reindexing: false,
             error: null,
             hits: [],
         };
@@ -60,6 +59,10 @@ export class MuninnSearchView extends ItemView {
         return 'Muninn Search';
     }
 
+    getIcon(): string {
+        return 'search';
+    }
+
     async onOpen(): Promise<void> {
         this.container = this.contentEl.createDiv({ cls: 'muninn-search-view' });
         this.render();
@@ -67,6 +70,26 @@ export class MuninnSearchView extends ItemView {
 
     async onClose(): Promise<void> {
         this.container?.empty();
+    }
+
+    getState(): MuninnSearchState {
+        return {
+            query: this.state.query,
+            mode: this.state.mode,
+            hits: this.state.hits,
+        };
+    }
+
+    async setState(state: unknown, _result: ViewStateResult): Promise<void> {
+        const sanitized = sanitizeSearchState(state);
+        if (sanitized === null) return;
+        this.state.query = sanitized.query;
+        this.state.mode = sanitized.mode;
+        this.state.hits = sanitized.hits;
+        this.state.error = null;
+        this.state.running = false;
+        this.applyStateToDom();
+        this.notifyStateChange();
     }
 
     private render(): void {
@@ -88,12 +111,6 @@ export class MuninnSearchView extends ItemView {
         });
         this.modeSemanticBtn.addEventListener('click', () => this.setMode('semantic'));
 
-        this.reindexBtn = modeRow.createEl('button', {
-            cls: 'muninn-reindex-button',
-            text: 'Reindex',
-        });
-        this.reindexBtn.addEventListener('click', () => this.runReindex());
-
         const inputRow = header.createEl('div', { cls: 'muninn-search-input-row' });
         this.inputEl = inputRow.createEl('input', {
             cls: 'muninn-search-input',
@@ -109,6 +126,13 @@ export class MuninnSearchView extends ItemView {
         this.statusEl = this.container.createEl('div', { cls: 'muninn-search-status' });
         this.resultsEl = this.container.createEl('div', { cls: 'muninn-search-results' });
 
+        this.applyStateToDom();
+    }
+
+    private applyStateToDom(): void {
+        if (this.inputEl) {
+            this.inputEl.value = this.state.query;
+        }
         this.updateModeButtons();
         this.updateStatus();
         this.renderResults();
@@ -119,6 +143,7 @@ export class MuninnSearchView extends ItemView {
         this.state.error = null;
         this.updateModeButtons();
         this.updateStatus();
+        this.notifyStateChange();
     }
 
     private updateModeButtons(): void {
@@ -135,11 +160,6 @@ export class MuninnSearchView extends ItemView {
             this.statusEl.createEl('div', {
                 cls: 'muninn-status-error',
                 text: this.state.error,
-            });
-        } else if (this.state.reindexing) {
-            this.statusEl.createEl('div', {
-                cls: 'muninn-status-info',
-                text: 'Reindexing vault...',
             });
         } else if (this.state.running) {
             this.statusEl.createEl('div', {
@@ -190,28 +210,7 @@ export class MuninnSearchView extends ItemView {
             this.state.running = false;
             this.updateStatus();
             this.renderResults();
-        }
-    }
-
-    private async runReindex(): Promise<void> {
-        if (this.state.reindexing) return;
-        this.state.reindexing = true;
-        this.state.error = null;
-        this.updateStatus();
-        try {
-            await this.host.forceReindex((p) => {
-                if (!this.statusEl) return;
-                this.statusEl.empty();
-                this.statusEl.createEl('div', {
-                    cls: 'muninn-status-info',
-                    text: `Reindexing... ${p.phase} ${p.done}/${p.total}`,
-                });
-            });
-        } catch (e) {
-            this.state.error = String(e);
-        } finally {
-            this.state.reindexing = false;
-            this.updateStatus();
+            this.notifyStateChange();
         }
     }
 
@@ -245,5 +244,9 @@ export class MuninnSearchView extends ItemView {
             const textEl = card.createEl('div', { cls: 'muninn-hit-text' });
             textEl.setText(hit.text.length > 240 ? hit.text.slice(0, 240) + '…' : hit.text);
         }
+    }
+
+    private notifyStateChange(): void {
+        this.onStateChange?.(this.getState());
     }
 }

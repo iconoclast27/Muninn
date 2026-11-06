@@ -237,14 +237,16 @@ console.log('rename search:', plugin.api.searchText('your-word'));
 3. Change the **Embedding model** to another valid model name (e.g., `mxbai-embed-large`).
 4. Change the **Embedding timeout (ms)** to `60000`.
 5. Close settings, then reopen the Muninn settings tab.
-6. Run **Muninn: Force reindex vault**.
+6. Click **Force reindex** in the Muninn settings tab.
 
 ### Expected results
 - The settings tab is listed under **Community plugins** as **Muninn**.
 - Reopening the tab shows the values you entered (settings are persisted via `Plugin.saveData`).
 - A trailing slash on the Ollama URL is stripped automatically.
+- Clicking **Force reindex** disables the button, shows a `Reindexing...` status with progress (`walk N/N`), and completes without an exception.
 - `forceReindex` sends embedding requests to the configured URL and model.
 - Console shows `[Muninn] force reindex complete:` with the result.
+- **Muninn: Force reindex vault** remains available in the command palette as an alternative.
 
 ## Scenario L — Sidebar search view
 
@@ -258,17 +260,15 @@ console.log('rename search:', plugin.api.searchText('your-word'));
 2. Type a distinctive word that appears in your notes and press Enter while **Text** mode is selected.
 3. Click the **Semantic** button and type a related concept, then press Enter.
 4. Click a result title to open the note.
-5. Click the **Reindex** button and wait for it to finish.
-6. Close the right sidebar, then reopen the search view via the ribbon icon.
+5. Close the right sidebar, then reopen the search view via the ribbon icon.
 
 ### Expected results
-- A **Muninn Search** leaf opens in the right sidebar.
-- The view shows mode buttons (**Text** / **Semantic**), a search input, a **Reindex** button, a status line, and result cards.
+- A **Muninn Search** leaf opens in the right sidebar and shows a magnifying-glass tab icon.
+- The view shows mode buttons (**Text** / **Semantic**), a search input, a status line, and result cards. (The **Reindex** button is no longer in the sidebar — it lives in Settings.)
 - Text search returns result cards with the matching note title, path, chunk number, and a text snippet.
 - Semantic search returns ranked result cards when Ollama is available; returns a status error if Ollama is unavailable.
 - Clicking a result title opens the corresponding note in a new leaf.
-- Reindex shows a progress status (`Reindexing... walk N/N`) and completes without an exception.
-- Reopening the view from the ribbon icon restores the same empty or populated state.
+- Reopening the view from the ribbon icon restores the previous query, selected mode, and results (or the empty state if nothing was searched).
 
 ## What to capture
 

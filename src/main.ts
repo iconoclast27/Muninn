@@ -11,11 +11,12 @@ import { Plugin, normalizePath, TFile, TFolder, Setting, PluginSettingTab, Works
 import { openStore } from './store/store.ts';
 import type { Store, EmbeddingRecord } from './store/store.ts';
 import { IntakeLane, type FileSource, type FileEntry } from './intake/lane.ts';
-import { createMuninnApi, laneReindexer, type MuninnApi, type EmbedClient, type ReindexResult } from './api.ts';
+import { createMuninnApi, laneReindexer, type MuninnApi, type EmbedClient, type ReindexResult, type ReindexProgress } from './api.ts';
 import { CHUNKER_CP } from './chunker/chunker.ts';
 import { DEFAULT_SETTINGS, sanitizeSettings, modelTag, type MuninnSettings } from './settings.ts';
 import { MuninnSearchView, MUNINN_VIEW_TYPE } from './ui/search-view.ts';
 import { createSearchHost, type FileOpener } from './ui/search-controller.ts';
+import { emptySearchState, type MuninnSearchState } from './ui/search-state.ts';
 
 const FLUSH_DEBOUNCE_MS = 2000;
 
@@ -28,6 +29,7 @@ export default class MuninnPlugin extends Plugin {
     private flushInProgress: Promise<void> | null = null;
     private reindexInProgress: Promise<ReindexResult | null> | null = null;
     private shuttingDown = false;
+    private lastSearchState: MuninnSearchState = emptySearchState();
     settings: MuninnSettings = { ...DEFAULT_SETTINGS };
 
     async onload(): Promise<void> {
@@ -122,31 +124,7 @@ export default class MuninnPlugin extends Plugin {
             id: 'force-reindex',
             name: 'Force reindex vault',
             callback: () => {
-                const p = this.api?.forceReindex();
-                if (!p) return;
-                this.reindexInProgress = p
-                    .then(async (result) => {
-                        // eslint-disable-next-line no-console
-                        console.log('[Muninn] force reindex complete:', result);
-                        try {
-                            await this.flushCache();
-                        } catch (flushErr: unknown) {
-                            // eslint-disable-next-line no-console
-                            console.error('[Muninn] force reindex flush failed:', flushErr);
-                        }
-                        return result;
-                    })
-                    .catch((e: unknown) => {
-                        if (this.shuttingDown) {
-                            return null;
-                        }
-                        // eslint-disable-next-line no-console
-                        console.error('[Muninn] force reindex command failed:', e);
-                        return null;
-                    })
-                    .finally(() => {
-                        this.reindexInProgress = null;
-                    });
+                void this.forceReindexWithFlush();
             },
         });
 
@@ -160,7 +138,11 @@ export default class MuninnPlugin extends Plugin {
 
         this.registerView(
             MUNINN_VIEW_TYPE,
-            (leaf) => new MuninnSearchView(leaf, createSearchHost(this.api!, this.createFileOpener())),
+            (leaf) => new MuninnSearchView(
+                leaf,
+                createSearchHost(this.api!, this.createFileOpener()),
+                (state) => { this.lastSearchState = state; },
+            ),
         );
 
         this.addRibbonIcon('search', 'Muninn search', () => {
@@ -204,6 +186,56 @@ export default class MuninnPlugin extends Plugin {
         this.api = null;
     }
 
+    isReindexing(): boolean {
+        return this.reindexInProgress !== null;
+    }
+
+    async forceReindexWithFlush(
+        onProgress?: (p: ReindexProgress) => void,
+        onDone?: (result: ReindexResult | null) => void,
+    ): Promise<ReindexResult | null> {
+        if (this.reindexInProgress !== null) {
+            this.reindexInProgress
+                .then((result) => { onDone?.(result); })
+                .catch(() => { onDone?.(null); });
+            return this.reindexInProgress;
+        }
+
+        const p = this.api?.forceReindex(onProgress);
+        if (!p) {
+            onDone?.(null);
+            return null;
+        }
+
+        this.reindexInProgress = p
+            .then(async (result) => {
+                // eslint-disable-next-line no-console
+                console.log('[Muninn] force reindex complete:', result);
+                try {
+                    await this.flushCache();
+                } catch (flushErr: unknown) {
+                    // eslint-disable-next-line no-console
+                    console.error('[Muninn] force reindex flush failed:', flushErr);
+                }
+                onDone?.(result);
+                return result;
+            })
+            .catch((e: unknown) => {
+                if (this.shuttingDown) {
+                    onDone?.(null);
+                    return null;
+                }
+                // eslint-disable-next-line no-console
+                console.error('[Muninn] force reindex failed:', e);
+                onDone?.(null);
+                return null;
+            })
+            .finally(() => {
+                this.reindexInProgress = null;
+            });
+        return this.reindexInProgress;
+    }
+
     private getCachePath(): string {
         // manifest.dir is the plugin folder under .obsidian/plugins/muninn.
         const dir = this.manifest.dir ?? '';
@@ -226,9 +258,16 @@ export default class MuninnPlugin extends Plugin {
     }
 
     private async openSearchView(): Promise<void> {
-        const leaf = this.app.workspace.getRightLeaf(false);
+        let leaf: WorkspaceLeaf | null = this.app.workspace.getLeavesOfType(MUNINN_VIEW_TYPE)[0] ?? null;
+        if (leaf !== null && leaf.view?.getViewType() === MUNINN_VIEW_TYPE) {
+            this.app.workspace.revealLeaf(leaf);
+            return;
+        }
+        if (leaf === null) {
+            leaf = this.app.workspace.getRightLeaf(false);
+        }
         if (leaf === null) return;
-        await leaf.setViewState({ type: MUNINN_VIEW_TYPE, active: true });
+        await leaf.setViewState({ type: MUNINN_VIEW_TYPE, active: true, state: this.lastSearchState });
         this.app.workspace.revealLeaf(leaf);
     }
 
@@ -458,5 +497,41 @@ class MuninnSettingTab extends PluginSettingTab {
                         await this.plugin.saveData(this.plugin.settings);
                     }
                 }));
+
+        const reindexSetting = new Setting(containerEl)
+            .setName('Force reindex vault')
+            .setDesc('Rebuild the vault index from scratch. This may take a while for large vaults.');
+
+        reindexSetting.addButton((button) => {
+            button.setButtonText('Force reindex');
+            if (this.plugin.isReindexing()) {
+                button.setDisabled(true).setButtonText('Reindexing...');
+            }
+
+            let statusEl: HTMLSpanElement | null = null;
+
+            button.onClick(async () => {
+                button.setDisabled(true).setButtonText('Reindexing...');
+                statusEl = reindexSetting.descEl.createEl('span', {
+                    cls: 'muninn-reindex-status',
+                    text: ' Reindexing...',
+                });
+
+                await this.plugin.forceReindexWithFlush(
+                    (p) => {
+                        if (statusEl?.isConnected) {
+                            statusEl.setText(` Reindexing... ${p.phase} ${p.done}/${p.total}`);
+                        }
+                    },
+                    () => {
+                        button.setDisabled(false).setButtonText('Force reindex');
+                        if (statusEl?.isConnected) {
+                            statusEl.remove();
+                        }
+                        statusEl = null;
+                    }
+                );
+            });
+        });
     }
 }
