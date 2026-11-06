@@ -1,7 +1,7 @@
 {
     "id": "muninn",
     "name": "Muninn",
-    "version": "0.2.0-test.8",
+    "version": "0.2.0-test.9",
     "minAppVersion": "0.15.0",
     "description": "Obsidian vault indexing plugin with text + semantic search.",
     "author": "iconoclast27",
