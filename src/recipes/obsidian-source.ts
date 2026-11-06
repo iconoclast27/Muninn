@@ -20,6 +20,8 @@ export class ObsidianRecipeSource implements RecipeSource {
         const normalized = normalizePath(this.dir);
         const folder = this.vault.getAbstractFileByPath(normalized);
         if (folder === null || !(folder instanceof TFolder)) {
+            // eslint-disable-next-line no-console
+            console.warn('[Muninn] recipe folder not found in vault index:', normalized);
             return [];
         }
         return folder.children

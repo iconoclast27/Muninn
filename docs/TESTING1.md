@@ -303,8 +303,8 @@ For each scenario, record:
 - Ollama is running locally for the chat completion step.
 
 ### Steps
-1. In the vault root, create a folder `.huginn/recipes/`.
-2. Copy `src/recipes/tag-assignment.md` from the Muninn source into `.huginn/recipes/tag-assignment.md`.
+1. In the vault root, create a folder `Muninn/Recipes/`.
+2. Copy `src/recipes/tag-assignment.md` from the Muninn source into `Muninn/Recipes/tag-assignment.md`.
 3. Open the command palette and run **Muninn: Run test recipe**.
 4. Watch the console for the `RecipeRunResult` object.
 
@@ -315,7 +315,10 @@ For each scenario, record:
   - `schemaValid: true`
   - `applyResult.applied: false` (the skill is read-only/suggest only)
   - `applyResult.message` contains the proposed tag, e.g., `suggest-tags for tag-assignment: propose tag 'ml'`.
-- If no recipes are present, console logs: `[Muninn] no recipes in .huginn/recipes/ to run`.
+- If no recipes are present, console logs: `[Muninn] no recipes in Muninn/Recipes/ to run`.
+
+### Troubleshooting
+- If you see `recipe folder not found in vault index: Muninn/Recipes`, the folder was likely created outside Obsidian and has not yet been indexed. Reload Obsidian or create the folder through Obsidian's file explorer.
 
 ### What this proves
 This is the first end-to-end Plugin 2 skill. It exercises the frozen Plugin 1 API (`tagVocabulary`, `relatedChunks`, `searchText`) as inputs to a recipe, validates the model's JSON output against the recipe schema, and returns a suggestion through the harness without modifying the vault.
