@@ -3,8 +3,8 @@
 // src/api.ts
 //
 // Dark-safe wrappers around the store layer. The shapes here are frozen
-// forever for v0.2; breaking one is a version event. Every method returns
-// `null + reason` on failure rather than throwing.
+// forever for v0.2; breaking one is a version event. Frozen 2026-11-06.
+// Every method returns `null + reason` on failure rather than throwing.
 // =============================================================================
 
 import type { Store, SearchResult, EmbeddingRecord } from './store/store.ts';

@@ -62,7 +62,7 @@ Search modes
 UI
 
 Sidebar pane (query, mode toggle, debounced typing, scored results, click-to-open) — implemented 2026-11-05 as `MuninnSearchView` in `src/ui/search-view.ts`, registered in `src/main.ts` with ribbon icon and command. Settings tab implemented 2026-11-05 for Ollama base URL, embedding model, timeout, and dimension (`src/settings.ts`, wired in `src/main.ts`).
-Public API (freeze before Plugin 2 builds)
+Public API (frozen 2026-11-06; the basis for Plugin 2)
 
 Harness-facing, typed, dark-safe (null + reason, never throws):
 searchText(query)             → { hits, mode: 'bm25' | 'scan' } | null
@@ -70,7 +70,7 @@ searchSemantic(text)           → { hits } | null
 relatedChunks(path, k)         → { neighbors } | null   // skill #3's primitive
 tagVocabulary()               → { tags: TagInfo[] } | null   // skill #1's validator
 
-The `skipped` tally promised in earlier drafts is deferred; the `mode` field discloses which engine answered the query. Shapes frozen forever: a harness and recipes build against them; breaking one is a version event.
+The `skipped` tally promised in earlier drafts is deferred; the `mode` field discloses which engine answered the query. Shapes frozen forever: a harness and recipes build against them; breaking one is a version event. Fixture F24 polices the surface.
 Demolition list
 
 src/eventlog/* entire; dwell gate's spine output; planner and watcher spine halves (subscription reborn as intake lane); _vault-index/events/, origin.txt; better-sqlite3 + its external entry. Fixture suites policing spine semantics retire with their subject (F01/F02/F03/F11 and friends — sweep owed); chunker and F15-derived scenarios migrate, re-pointed to the walk.
@@ -113,6 +113,6 @@ Joint build order (the two plugins are one arc)
     Skill #1 (tags) — first end-to-end proof of the model-judges doctrine.
     Remaining skills, corrections loop, then the deferred rulings revisit (write-class, notebook residency, mobile).
 
-Rulings owed to close this draft: chunker determinism statement · corrections-notebook residency · manual reindex semantics · any veto on the demolition list.
+Rulings owed to close this draft: chunker determinism statement · corrections-notebook residency · manual reindex semantics · any veto on the demolition list. The Plugin 1 public API is now frozen (2026-11-06); Plugin 2 may build against it.
 
-That's the unified draft — two parts, one spine-less whole, the coupling explicit at the API boundary and the build order. Per the Qwen feasibility question parked in the handover: note that steps 4–5 are exactly the escalation-ladder-shaped work a bounded local implementer could take on — single files, type-only seams, fixture referees — once you've ruled on the demolition list and the specs are frozen. Say the word on the five rulings or send corrections, and v0.2 graduates from draft to definition.
+That's the unified draft — two parts, one spine-less whole, the coupling explicit at the API boundary and the build order. Per the Qwen feasibility question parked in the handover: note that steps 4–5 are exactly the escalation-ladder-shaped work a bounded local implementer could take on — single files, type-only seams, fixture referees — once you've ruled on the demolition list and the specs are frozen. Say the word on the remaining rulings or send corrections, and v0.2 graduates from draft to definition.

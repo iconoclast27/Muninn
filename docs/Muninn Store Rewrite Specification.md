@@ -1,8 +1,8 @@
 # Muninn — Store Rewrite Specification
 
-**Status:** Draft v3 — ratified as-built (signed off 2026-11-04; amended 2026-11-05)
+**Status:** Final v3 — frozen 2026-11-06 (signed off 2026-11-04; amended 2026-11-05; API surface frozen 2026-11-06)
 **Date:** 2026-11-03
-**Purpose:** Define the index database schema, API surface, and behavioral invariants for Muninn (v0.2, clean start). Supersedes legacy `src/fts/store.ts` and its schema.
+**Purpose:** Define the index database schema, API surface, and behavioral invariants for Muninn (v0.2, clean start). Supersedes legacy `src/fts/store.ts` and its schema. The public API shapes in §6 are now frozen for Plugin 2.
 
 ```text
 SUPERSESSION NOTE (added 2026-11-04, per Dan's ruling): This spec
@@ -14,7 +14,7 @@ against this spec.
 ```
 
 
-**Draft v3 amendments (found while authoring F01 against real chunker receipts):**
+**Final v3 amendments (found while authoring F01 against real chunker receipts):**
 1. Rename semantics previously had no doors — `renamePath` and `renamePrefix` added to §4.4.
 2. Delete left a resurrection hole (watermark outliving rows) — §5.4 now purges all three, atomically, with the pairing invariant stated.
 3. Per-row `cp` was vestigial spine furniture — dropped from the schema; `chunker_epoch` in meta is the sole authority (§2.4, §3).
