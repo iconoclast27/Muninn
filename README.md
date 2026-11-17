@@ -16,7 +16,7 @@ Canonical set (single source of truth — every durable fact is mined into these
 
 - [`docs/Initial Design Report.md`](docs/Initial Design Report.md) — the as-built description at
   `b75c408` / `0.2.0-test.15` (recorded 2026-11-16).
-- [`docs/decisions/index.md`](docs/decisions/index.md) — the 40 ADRs, numbered from 1, status table and
+- [`docs/decisions/index.md`](docs/decisions/index.md) — the 42 ADRs, numbered from 1, status table and
   supersession map. **An ADR is never edited after acceptance.**
 - [`docs/Tracked Issues.md`](docs/Tracked%20Issues.md) — **the tracked-issues docket, canonical for both
   projects** (Muninn and Huginn). Raised findings stay on the docket until investigated; Huginn keeps a

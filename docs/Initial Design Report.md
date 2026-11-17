@@ -679,3 +679,24 @@ the docs of this pass. Tool residue, untracked, so it leaves no commit; `adr-39.
 4 tracked files to Muninn (`docs/Tracked Issues.md`, `adr-38.md`, `adr-39.md`, `adr-40.md`) and 1 to Huginn
 (`docs/Tracked Issues -- Pointer.md`); the new files are untracked until Dan authorizes the commit, so the
 counts above are the pre-pass numbers, not the post-pass claim.
+
+**Dated 2026-11-17, later in the same day — the pass is committed and pushed.** The second-pass docs commit
+is `67d2814` (8 files: `docs/Tracked Issues.md`, `adr-38.md`, `adr-39.md`, `adr-40.md`,
+`docs/decisions/index.md`, this report, `README.md`, `CONTRIBUTING.md`), pushed `6b76e41..67d2814 main ->
+main` [R]; `origin/main` = `67d2814`, `git rev-list --count origin/main..HEAD` = 0, tree clean [R], live doc
+set = **51** tracked files [R]. This paragraph is the next pass recording the hash, because a commit cannot
+contain its own hash — measured: `git show 6b76e41:docs/Initial Design Report.md | grep -c '6b76e41'` → **0**
+[R], so Phase 5's hash landed in a later commit; the same pattern applies here.
+
+**Rulings of 2026-11-17, later in the day (T10, T33, T17/T18, T24, "Go for 1-4"):** T10 closed by Dan's own
+vault act — **"T10 done, I deleted all memories to avoid prejudicing future testing"**; T33 closed as a
+misunderstanding — **"The closed models are closed on the coding/production side, not the user side…
+qwen3.5:4b is a popular default for users"**, so `DEFAULT_SETTINGS` (`src/settings.ts:20-27`) is unchanged and
+`SECURITY.md` is conformed to the scope; T17/T18 closed by **"T17/18 -- agreed, root"**; **T24 closed** on
+Dan's request "Can you do T24-25 for me?" — `versions.json` measured **13** entries against **15** tags
+before, `git ls-files`-independent `node -e` parse reports **16** entries after, with the added
+`0.2.0-test.1` (`92d68076`) and `0.2.0-test.2` (`c22c0402`) and `minAppVersion` read from each tag's own
+`manifest.json` (`git show 0.2.0-test.1:manifest.json` → `0.15.0`). The 16th entry, `"0.2.0": "0.15.0"`, is a
+**seed entry, not a tag**: the first `manifest.json` at `5516c44` declared version `0.2.0` before any tagged
+release, and `CHANGELOG.md` has no `0.2.0` entry — measured, so the extra entry is not drift. No version, tag,
+or release was touched.

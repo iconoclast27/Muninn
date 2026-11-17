@@ -47,6 +47,8 @@ deviation** (invariant stands, as-built contradicts it), **Partly superseded**.
 | 38 | The Plugin 2 corpus in Muninn is retained as a **named oracle** | Accepted | Dan 2026-11-17 | 15 tracked files, no production path reaches them, f25/f26 are the only consumers; the corpus is Muninn's referee for the interface `listNotes` must preserve |
 | 39 | The three empty `src/` directories in Muninn are removed | Accepted | Dan 2026-11-17 | Git cannot track empty dirs, so the act leaves no commit — this ADR is the record; `.qwen/tmp` is out of scope (T36) |
 | 40 | Working documents live in the repo; nothing is kept twice for provenance | Accepted | Dan 2026-11-17 | `docs/Tracked Issues.md` is canonical for both projects; `/tmp` is for the length of one task; stating a fact twice is a drift opportunity |
+| 41 | Model roster closures bind the coding/production side, not the user side | Accepted | Dan 2026-11-17 | Roster closures are staffing judgements; they do not prohibit a small model on the user side, and `qwen3.5:4b` stays as Huginn's chat default (T33 closed) |
+| 42 | Root placement for the four root documents; living references in `docs/` | Accepted | Dan 2026-11-17 | `README.md`, `CHANGELOG.md`, `SECURITY.md`, `CONTRIBUTING.md` at root in both repos; ADRs, Design Report, testing contract, protocol docs, stubs in `docs/` (T17/T18 closed) |
 
 ## Supersession map
 
@@ -94,3 +96,16 @@ ADR-28, and ADR-34 keep their acceptance-time text, and ADR-38 extends them. The
 into the repo as `docs/Tracked Issues.md`, canonical for **both projects**, with a pointer stub in Huginn
 (`Huginn/docs/Tracked Issues -- Pointer.md`). T1, T2, and T3 close; **T36** (`.qwen`) is raised and closes
 the same day on Dan's ruling — see `adr-39.md`.
+
+## Addendum (2026-11-17, third pass) — ADR-41, ADR-42, and four closings
+
+Dan's later rulings of 2026-11-17 close four docket rows and add two ADRs. **ADR-41** — model roster closures
+bind the **coding/production** side, not the user side: **"The closed models are closed on the coding/
+production side, not the user side. The vault plugin is going to rely on small models, and qwen3.5:4b is a
+popular default for users"** — Huginn's `chatModel` default is unchanged, `SECURITY.md` in both projects is
+conformed to the scope, closing **T33**. **ADR-42** — **"T17/18 -- agreed, root"**: `README.md`,
+`CHANGELOG.md`, `SECURITY.md`, `CONTRIBUTING.md` sit at the repo root in both projects, living references in
+`docs/`, closing **T17** and **T18**. **T10** closes by Dan's vault act — all memory files deleted, "to avoid
+prejudicing future testing". **T24/T25** close: the executor completed `versions.json` on Dan's request
+(Muninn 13 → 16 entries, Huginn 18 → 20), with `minAppVersion` measured from each tag's own `manifest.json`.
+No ADR body is edited (ruling 2, `adr-06.md`), no version, tag, or release is touched.

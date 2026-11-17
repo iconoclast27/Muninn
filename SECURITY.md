@@ -31,7 +31,9 @@ a convenience (ADR-34).
 Model output is inert payload, never an instruction (Muninn ADR-31; Huginn R6). Instructions arising
 from tool output are refused. Model roster closures (qwen, Gemma4:12b) are recorded in the ADR set
 (ADR-21); the paid `kimi` plugin is the known-good path with a declared ~$120 cap. No model has
-approval authority, and no model can reach the vault.
+approval authority, and no model can reach the vault. **Scope of the closures (Dan, 2026-11-17):** they are
+staffing rulings for the coding/production side; they do not prohibit a small model on the user side, and
+Huginn's chat default `qwen3.5:4b` stays as a popular user-side default (closing T33).
 
 ## External requirements
 
