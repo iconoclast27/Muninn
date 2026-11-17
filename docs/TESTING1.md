@@ -2,6 +2,13 @@
 
 Use this document to smoke-test the Plugin 1 build in Obsidian with the developer console open. For released builds, install the plugin via BRAT from the latest GitHub prerelease tag. For unreleased changes, build from source and copy `main.js`, `manifest.json`, and `styles.css` into `.obsidian/plugins/muninn`.
 
+**Version of record:** `0.2.0-test.15` — tag `0.2.0-test.15`, 2026-11-06, tag commit `084a076` [R]
+(https://github.com/iconoclast27/Muninn/releases/tag/0.2.0-test.15). `084a076` moved chat and skills to
+Huginn and left Muninn the frozen `MuninnApi` door only; **Huginn requires Muninn `0.2.0-test.15` or
+later** (`Huginn/docs/TESTING1.md:9`, `Huginn/README.md:22` [R]). Scenario K/L conditions were written at
+`0.2.0-test.7` and stay valid for `test.15`; the manual receipts in the scenarios below are dated
+2026-11-06 (ruling 8, docket T19 — the version-pinned header is part of the release act, not a doc edit).
+
 ## Environment
 
 - Obsidian Desktop (minAppVersion `0.15.0`).
