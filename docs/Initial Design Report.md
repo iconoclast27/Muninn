@@ -9,8 +9,11 @@ against code measured at the current HEAD. Every claim carries a provenance labe
 cut) · **[H]** inference from measured code · **[GHOST]** retrieval-surfaced, a hint never an
 authorization.
 **Companions:** `docs/decisions/` ADR-1 … ADR-37 (index at the end of the ADR set);
-`docs/Muninn Store Rewrite Specification.md` (Final v3) remains the store/API contract of record;
-`docs/TESTING1.md` remains the manual smoke of record.
+`docs/TESTING1.md` remains the manual smoke of record. The store/API contract of record is **§4, §6, §8
+of this report + ADR-4, ADR-9, ADR-10, ADR-22, ADR-31, ADR-32, ADR-36**: `docs/Muninn Store Rewrite
+Specification.md` (Final v3) was mined into those docs, archived 2026-11-17 with a tombstone
+(triage row 25), and **deleted 2026-11-17** (Phase 5, Dan's authorization) [R]; it is recoverable from
+the git history.
 
 ---
 
@@ -393,9 +396,10 @@ PASS, L PASS, port-change and model-change facts) [R].
   them** (git commit/checkout/reset/clean, `rm`, `mv`, `tee`, `npm install` forbidden by default);
   **on any surprise, halt** — "Surprises belong to the human"; no memory across sessions ("the files
   win"); **"IF A FIELD CANNOT BE FILLED FROM A RECEIPT, WRITE 'UNKNOWN'. Never infer. Never estimate.
-  Never remember."** The file `docs/Standing Qwen prompt.txt` (undated body) is **archive material** by
+  Never remember."** The file `docs/Standing Qwen prompt.txt` (undated body) was **archive material** by
   ruling — "We don't plan on using those models again"; the durable rules are mined into conventions
-  first (ADR-21, Dan 2026-11-16) [U].
+  first (ADR-21, Dan 2026-11-16) [U]. The file was tombstoned in `docs/archive/` and **deleted
+  2026-11-17** (Phase 5, Dan's authorization); the rules live in `CONTRIBUTING.md` and ADR-21.
 - **Escalation ladder, bounded and fixture-refereed:** behaviour-preserving refactor → single-file
   driver swap → small new module → participation in the rework only if all green. **The first supervised
   run is the human's call, not the model's.**
@@ -411,7 +415,10 @@ PASS, L PASS, port-change and model-change facts) [R].
   in two commits [R].
 - **Model roster (Dan, 2026-11-15/16):** Gemma4:12b retired, qwen closed, kimi (paid plugin) is the
   known-good path with a declared ~$120 cap. Muninn's embedding model stays `nomic-embed-text:v1.5`
-  [R]; `Never Try To Teach A Pig To Sing.md` (in Huginn) is archive material [U].
+  [R]; `Never Try To Teach A Pig To Sing.md` (65 lines, tracked in **Huginn** [R]) was archive material
+  (ruling 9), tombstoned in Huginn's `docs/archive/`, and **deleted 2026-11-17** with Huginn's archive
+  (Phase 5, Dan's authorization). The closure facts rest on Dan's ruling and the committed handover
+  narratives, never on stored transcripts [U].
 - **Interaction rule:** judgment calls get a recommendation plus the reasoning, then Dan rules; "if I
   can decide it with a stated reason, *decide it*. Handing back a menu is a documented failure mode.
   Asking for receipts is always right. Asking for decisions I can make myself is the failure."
@@ -486,7 +493,9 @@ Parked items are **registered, not scheduled** — an untested path, not a red (
     handovers/reviews, `Plugin 2 Harness.md` + `tool-skill-strategy.md` (tombstone → Huginn),
     `Standing Qwen prompt.txt`, empty-dir cleanup; shared docs owned by Muninn with pointer stubs in
     Huginn (rulings 1–10) [U]. Archive→delete remains a later human-approved step, never mine
-    (ruling 13).
+    (ruling 13). **Both steps executed 2026-11-17 on Dan's authorization** — Phase 4 wrote the canonical
+    set (commit `9b2a2bd`, pushed `b75c408..9b2a2bd` [R]); Phase 5 deleted `docs/archive/` (34 tracked
+    files) — see §22.
 12. **Phase 1 count correction** — my own drift, recorded honestly: Phase 1's header said
     "34 tracked docs + `README.md`" and labelled the live-doc table "11 live Muninn files". Measured
     2026-11-16: `git ls-tree` = **37 tracked files under `docs/`** (23 in `docs/ARCHIVE/`, 14 live) +
@@ -512,10 +521,14 @@ Measured, dated 2026-11-16. Each line is a Phase 3 triage input, not an action t
 
 ## 20. Source registry (mining destinations)
 
-Tracked docs measured: 37 under `docs/` + `README.md` = 38 [R]. All 23 archived files were read and
-mined; destinations below.
+Tracked docs measured 2026-11-16: 37 under `docs/` + `README.md` = 38 [R]. All 23 archived files were
+read and mined; destinations below. **All archive material is deleted 2026-11-17** (Phase 5, Dan's
+authorization): **34 tracked files** under `docs/archive/` [R], each carrying the tombstone *"Archived
+2026-11-17. Superseded by <doc>. Not authoritative."* The deleted files are recoverable from the git
+history (§22).
 
-**`docs/archive/` (renamed per ruling 1; 23 files)** — durable facts → ADRs / this report / conventions:
+**`docs/archive/` (renamed per ruling 1; 23 sealed files, deleted 2026-11-17)** — durable facts → ADRs /
+this report / conventions:
 
 | Archived file | Destination |
 |---|---|
@@ -547,12 +560,12 @@ mined; destinations below.
 
 | Live file | Disposition |
 |---|---|
-| `Muninn Store Rewrite Specification.md` (Final v3) | **canonical** store/API contract, stays |
+| `Muninn Store Rewrite Specification.md` (Final v3) | **mined, then archived** (approved triage row 25), tombstoned *Archived 2026-11-17*, **deleted 2026-11-17**; the contract of record is this report §4, §6, §8 + ADR-4, ADR-9, ADR-10, ADR-22, ADR-31, ADR-32, ADR-36 |
 | `Unified Project Definition v0.2.md` | **canonical, Muninn owns**; Huginn keeps a pointer stub (ruling 4) |
 | `LLM Coordination Protocol v1.0.md` | **canonical, Muninn owns**; Huginn keeps a pointer stub (ruling 4); conventions lineage |
 | `TESTING1.md` | **canonical**, updated (ruling 8) |
 | `Release Ritual -- Walkthrough.md` | **canonical** conventions (ADR-8 authority) |
-| `Project Prompt.md` | **canonical** conventions (operating doctrine seed) |
+| `Project Prompt.md` | **merged into `CONTRIBUTING.md`, then archived** (approved triage row 26), tombstoned *Archived 2026-11-17*, **deleted 2026-11-17** |
 | `README.md` (repo root) | **canonical** |
 | `Plugin 2 Harness.md` | **archive with tombstone → Huginn's harness doc** (ruling 7) |
 | `tool-skill-strategy.md` | **archive with tombstone → Huginn** (ruling 7); R9/R10 mined into ADR-32 |
@@ -561,15 +574,64 @@ mined; destinations below.
 | `Independent Review 2026-11-04.md` | **archive** (ruling 3); findings mined into ADR-28, ADR-29, report §12 |
 | `HANDOVER - 2026-11-04.md` / `… Evening.md` / `… Review.md` | **archive** (ruling 3); mined into ADR-23, ADR-29, ADR-16, report §17 |
 
-**New canonical docs owed (Phase 4, pending approval):** `docs/decisions/` ADR-1 … ADR-37 + index,
-this Design Report, `docs/Conventions.md` (the mined conventions corpus: receipts-or-nothing, provenance
-labels, paste discipline, timestamp doctrine, fixture rules + hostility ledger, red taxonomy,
+**All rows marked archive above are deleted 2026-11-17** (Phase 5, Dan's authorization). The destinations
+named in each row are where those facts live now: they are canonical and this report and the ADR set are
+the only authoritative carriers.
+
+**New canonical docs (Phase 4, written 2026-11-17, committed `9b2a2bd` [R]):** `docs/decisions/` ADR-1 …
+ADR-37 + `index.md`, this Design Report, `CONTRIBUTING.md` at the repo **root** (the planned
+`docs/Conventions.md` name was not used; it carries the mined conventions corpus: receipts-or-nothing,
+provenance labels, paste discipline, timestamp doctrine, fixture rules + hostility ledger, red taxonomy,
 sequencing, erasure-TS, doc alignment at session close, session-close ritual, executor contract,
-interaction rule, forest-before-trees, platform-receipt rule), `CHANGELOG.md`, `SECURITY.md`,
-`README.md` refresh.
+interaction rule, forest-before-trees, platform-receipt rule), `CHANGELOG.md`, `SECURITY.md` (both at the
+root, matching Huginn — placement ruling owed, T17/T18), `README.md` refresh.
 
 ## 21. One next action
 
 Present Phase 2 Muninn (ADR-1 … ADR-37 + this report) to Dan, **wait for approval**, then write the
 Muninn triage table for approval (ruling 12) — nothing moves in the repo before written approval
 (Phase 4).
+
+**Discharged 2026-11-17:** Phase 2 approved, the Phase 3 triage approved, Phase 4 executed (`9b2a2bd`,
+pushed), Phase 5 (archive→delete) executed on Dan's authorization. The next action is §22's: the code
+thread behind its gate, in binding order, with Dan's tasking owed (rulings 0/1/3) and ADR-37 **Proposed,
+ruling owed**.
+
+## 22. Phase 4 and Phase 5 records (dated 2026-11-17)
+
+**Phase 4 executed 2026-11-17** on Dan's written authorization ("Approved and proceed on phase 4",
+2026-11-16; Phase 2 Muninn and the Phase 3 Muninn triage table approved 2026-11-16). Executed in Muninn:
+37 ADRs + `index.md` written into `docs/decisions/`; this Design Report written into
+`docs/Initial Design Report.md`; `docs/ARCHIVE/` renamed `docs/archive/` and every moved file stamped
+with the tombstone *"Archived 2026-11-17. Superseded by <doc>. Not authoritative."*; `docs/archive/README.md`
+(the archive rule + index); `CHANGELOG.md`, `SECURITY.md`, `CONTRIBUTING.md` written at the repo **root**;
+`README.md` Docs section; `docs/TESTING1.md` version-of-record header (`0.2.0-test.15`, tag commit
+`084a076`); the empty untracked `docs/AGENTS/SKILLS/` deleted. Commit `9b2a2bd` —
+`docs(rationalisation): phase 4 canonical set — ADRs, Design Report, archive with tombstones` — **111 files,
+2391+/5526−** [R], pushed `b75c408..9b2a2bd main -> main` [R]. Receipts tied to the commit:
+`TYPECHECK EXIT:0`, **26 `VERDICT: GREEN`**, `FIXTURES LOOP DONE` [R]. Docs-only: no `src/` change; tags
+untouched (15 local, 27 remote refs [R]).
+
+**Phase 5 executed 2026-11-17** on Dan's authorization ("Phaswe 5 and the docs commit pushed", Dan
+verbatim, 2026-11-17). The deletion is `git rm -r docs/archive`: **34 tracked files** [R], the measured
+`git ls-files docs/archive` count taken immediately before the deletion. The tombstoned copies leave the
+working tree and the index; the content remains recoverable from the git history (all 34 were tracked).
+Huginn's Phase 5 is the same act on 19 tracked files. Live-doc conform, same commit: `README.md` (the
+archive bullet → the deletion record), `CONTRIBUTING.md` (the archive sentence), `docs/TESTING1.md:325`
+(the `docs/ARCHIVE/testresults-2026-11-06.md` citation), `docs/Unified Project Definition v0.2.md:7` (the
+store-spec supersession note), this report's header companion claim, §18 item 11, §20 registry rows, §21,
+`CHANGELOG.md`'s docs record, and `docs/decisions/index.md`'s dated addendum. **No ADR body is edited**
+(ruling 2, ADR-6): **88 lines in 34 ADR files** cite `docs/archive/...` [R] as acceptance-time evidence;
+the facts behind each citation live in the ADR decision text, this report, and `CONTRIBUTING.md`, and the
+cited files are recoverable from history.
+
+**Live doc set measured after Phase 5:** `git ls-files docs README.md CHANGELOG.md SECURITY.md
+CONTRIBUTING.md` = **47 tracked files** [R]: `README.md`, `CHANGELOG.md`, `SECURITY.md`, `CONTRIBUTING.md`;
+`docs/Initial Design Report.md`, `docs/TESTING1.md`, `docs/Release Ritual -- Walkthrough.md`,
+`docs/LLM Coordination Protocol v1.0.md`, `docs/Unified Project Definition v0.2.md`; `docs/decisions/`
+(37 ADRs + `index.md` = 38). `docs/archive/` is gone from the index.
+
+**Next action:** the code thread stays behind its gate, in binding order, once Dan tasks it (rulings 0/1/3):
+Muninn `listNotes` (ADR-37, **Proposed — ruling owed**) first, then Huginn's mirror at
+`src/muninn-api.ts:57`, then `list` in the op loop. **Huginn cannot lead.** No version bump, tag, release
+cut, or release push is authorized.

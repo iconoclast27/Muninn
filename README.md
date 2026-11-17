@@ -12,7 +12,7 @@ See [`docs/TESTING1.md`](docs/TESTING1.md) for the manual Obsidian smoke-test sc
 
 ## Docs
 
-Canonical set (single source of truth; history lives in `docs/archive/` with tombstones):
+Canonical set (single source of truth — every durable fact is mined into these docs):
 
 - [`docs/Initial Design Report.md`](docs/Initial Design Report.md) — the as-built description at
   `b75c408` / `0.2.0-test.15` (recorded 2026-11-16).
@@ -27,8 +27,11 @@ Canonical set (single source of truth; history lives in `docs/archive/` with tom
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — conventions, fixture discipline, the authorization chain.
 - [`CHANGELOG.md`](CHANGELOG.md) — entries by release tag, dates and tag commits measured.
 - [`SECURITY.md`](SECURITY.md) — private/experimental posture, the write lane, the model layer.
-- [`docs/archive/README.md`](docs/archive/README.md) — the archive rule, the index, and the tombstone
-  format. Archive material is not authoritative.
+- **The archive is deleted** (2026-11-17, Phase 5, Dan's authorization): `docs/archive/` held **34 tracked
+  files**, each stamped with the tombstone *"Archived 2026-11-17. Superseded by \<doc\>. Not
+  authoritative."* The mining destinations are in `docs/Initial Design Report.md` §20; the deletion record
+  is §22 and `CHANGELOG.md`. Deleted files are recoverable from the git history. ADR evidence lines cite
+  files that existed at acceptance (88 lines in 34 ADRs [R]) and are **not edited** (ruling 2, ADR-6).
 
 ## Build
 

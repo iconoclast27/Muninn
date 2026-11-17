@@ -322,4 +322,7 @@ Open a new chat with the scenario results, the Obsidian version, and any console
 - **Scenario K — Settings UI:** PASS. Settings update fine. Semantic search fails when the Ollama port is changed to an incorrect value, and works again once the correct port is restored. A major model change triggers re-embedding as expected.
 - **Scenario L — Sidebar search view:** PASS. Searching works in both text and semantic modes, the tab icon renders correctly, and the interface looks reasonable.
 
-These receipts were originally captured in `docs/testresults.md` and have been consolidated here. The raw file is archived in `docs/ARCHIVE/testresults-2026-11-06.md`.
+These receipts were originally captured in `docs/testresults.md` and have been consolidated here. The raw
+file was moved to `docs/archive/testresults-2026-11-06.md` with a tombstone (Phase 4) and **deleted
+2026-11-17** (Phase 5, Dan's authorization); it is recoverable from the git history. The facts are in this
+section and in `docs/Initial Design Report.md` §7.

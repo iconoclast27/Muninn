@@ -32,3 +32,21 @@ has moved (T1, ruling owed on the Plugin 2 modules that remain in `src/`).
 
 **Release hygiene, ruling owed (T24):** `versions.json` has 13 entries against 15 tags — `0.2.0-test.1`
 and `0.2.0-test.2` are missing. Completing the file is a release act, Dan's, not a doc edit.
+
+## Docs record (not a release act)
+
+**2026-11-17, Phase 4** — commit `9b2a2bd`, `docs(rationalisation): phase 4 canonical set — ADRs, Design
+Report, archive with tombstones`: **111 files, 2391+/5526−** [R], pushed `b75c408..9b2a2bd main -> main`
+[R]. Written: `docs/decisions/` ADR-1 … ADR-37 + `index.md`, `docs/Initial Design Report.md`,
+`CHANGELOG.md`, `SECURITY.md`, `CONTRIBUTING.md` (repo root), `README.md` Docs section, `TESTING1.md`
+version-of-record header (`0.2.0-test.15`, tag commit `084a076`), `docs/archive/` with tombstones,
+`docs/archive/README.md`; the empty untracked `docs/AGENTS/SKILLS/` deleted. Receipts tied to the commit:
+`TYPECHECK EXIT:0`, **26 `VERDICT: GREEN`**, `FIXTURES LOOP DONE` [R]. No bump, no tag, no release.
+
+**2026-11-17, Phase 5** — archive→delete, Dan's act on Dan's authorization (ruling 13): `git rm -r
+docs/archive` = **34 tracked files** [R], every tombstone dated 2026-11-17; content recoverable from the
+git history. Live docs conformed in the same commit: `README.md`, `CONTRIBUTING.md`, `docs/TESTING1.md:325`,
+`docs/Unified Project Definition v0.2.md:7` (the store-spec supersession note), `docs/Initial Design
+Report.md` (header companion, §18 item 11, §20 registry rows, §21, new §22), this record, and
+`docs/decisions/index.md`'s dated addendum. **No ADR body edited** (ruling 2, ADR-6). Live doc set after:
+**47 tracked files** [R]. No bump, no tag, no release.

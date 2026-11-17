@@ -45,8 +45,11 @@ terminal output, not by a claim.
 numbered from 1. **An ADR is never edited after acceptance** (ADR-6): a changed decision is a new ADR
 marking the old one Superseded. `docs/TESTING1.md` is the living manual-smoke contract — manual smoke is
 Dan's act in Obsidian, and fixture-green is not production-live. `docs/Release Ritual -- Walkthrough.md`
-is the release doctrine. History lives in `docs/archive/` with tombstones; archive material is not
-authoritative, and deletion is a later human-approved step, never the executor's.
+is the release doctrine. Every durable fact is mined into the canonical set; `docs/archive/` **was deleted
+2026-11-17** (Phase 5, Dan's authorization) — the record is `docs/Initial Design Report.md` §22 and
+`CHANGELOG.md`, and the deleted files are recoverable from the git history. **ADR evidence lines cite files
+that existed at acceptance** (`docs/archive/...` is 88 lines in 34 ADR files [R]); ADRs are never edited
+after acceptance, and deletion was never the executor's act — it was Dan's, on written authorization.
 
 **Docs conform to code, never the reverse.** Shared project documents (the LLM Coordination Protocol,
 the Unified Project Definition) are owned by Muninn; Huginn keeps pointer stubs. A fact lives in exactly

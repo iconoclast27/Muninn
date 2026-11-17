@@ -70,3 +70,14 @@ deviation** (invariant stands, as-built contradicts it), **Partly superseded**.
 - **Shared docs owned by Muninn** (Dan, 2026-11-16): `LLM Coordination Protocol v1.0.md`,
   `Unified Project Definition v0.2.md` — byte-identical copies currently live in Huginn's `docs/`;
   Huginn keeps pointer stubs.
+
+## Addendum (2026-11-17) — Phase 4 committed, Phase 5 executed, no ADR edited
+
+Phase 4 is committed (`9b2a2bd`, 111 files, 2391+/5526− [R]) and pushed (`b75c408..9b2a2bd main -> main`
+[R]). **Phase 5, archive→delete, executed 2026-11-17** on Dan's authorization: `git rm -r docs/archive` =
+**34 tracked files** [R], every tombstone dated 2026-11-17. **88 evidence lines across 34 ADR files** cite
+`docs/archive/...` [R]. Those lines are **dated statements at acceptance** and are **not edited** (ruling 2,
+ADR-6): the facts behind each citation live in the ADR decision text, `docs/Initial Design Report.md`, and
+`CONTRIBUTING.md`, and the cited files are recoverable from the git history. The living record is
+`CHANGELOG.md` §Docs record and `docs/Initial Design Report.md` §22. Status lines that describe the archive
+as a destination are read against this addendum.

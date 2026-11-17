@@ -13,6 +13,12 @@ diff gate, joint build order. Specifically deferred to v3: table set
 demands them), FTS path-keyed addressing, forceReindex as a store API
 door, WAL pragmas.
 
+**Conformed 2026-11-17:** the store facts are now carried by `docs/Initial Design Report.md` §4, §6, §8
+and ADR-4, ADR-9, ADR-10, ADR-22, ADR-31, ADR-32, ADR-36 in `docs/decisions/`. `docs/Muninn Store Rewrite
+Specification.md` (Final v3) was mined into those docs, archived 2026-11-17 with a tombstone, and
+**deleted 2026-11-17** (Phase 5, Dan's authorization); it is recoverable from the git history. Where this
+document and the ADR set conflict on the store, the ADR set wins.
+
 Origin and correction
 
 The original goal, stated plainly: semantic search over the vault, with a nice-to-have mobile-readable mode, the search available to the next plugin (the assistant), which uses skill-based tool use to prevent models flailing at tool surfaces.
