@@ -103,6 +103,20 @@ is a worker; **binding on the op loop**),
 blocked on recurrence), **T15** (`listNotes` contract — Muninn `adr-37.md` / Huginn `adr-33.md`,
 **Proposed**).
 
+**The red plan is written (2026-11-17, Dan's request "Go ahead with the red plan document"):**
+`Huginn/docs/Op Loop Red Plan.md` — planning only. It re-measures every seam at HEAD `de228d0`
+(Muninn) and `a541f68` (Huginn), corrects the citation drift recorded in §5 of that document
+(`dispatch.ts` nulls measured at `:94, 97, 104`; `ApprovalRequest` at `harness.ts:29-36`; Stop parity
+at `approval-gate.ts:41-44, 47-50`; the Muninn typed fakes at `f22.ts:41`/`f24.ts:56` and the Huginn
+mirror fakes at `f19.ts:20`/`f30.ts:37`, with `f07.ts:41` a cast that does not grow), states the
+sequence (Muninn `f27` red at the five-door surface → implementation with fakes grown → Muninn's own
+release act → the Huginn mirror → `f31`–`f36` in ADR-34's order → the loop and UI leg → `TESTING1`
+redefinition → the merged smoke), and lists the authorization gates. **No coding, no fixture, no code
+commit is authorized** — the docs pass that carries this pointer is Dan's authorized act, batched as
+one commit per repo. T15, T13, T4 are its gates. The plan is tracked in Huginn as
+`docs/Op Loop Red Plan.md`; this docket row is its canonical pointer, and each repo's Design Report
+records the act as work, not as a status list.
+
 **Closed by rulings of 2026-11-17** — T1 (named oracle, `adr-38.md`), T2 (`rmdir` of the three empty `src/`
 dirs, `adr-39.md`), T3 (Phase 1 count correction, Design Report §18 item 12), T10 (all memory files deleted
 from the vault by Dan), T17/T18 (root placement agreed), T24/T25 (`versions.json` completed by the executor

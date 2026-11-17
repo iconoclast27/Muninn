@@ -700,3 +700,31 @@ before, `git ls-files`-independent `node -e` parse reports **16** entries after,
 **seed entry, not a tag**: the first `manifest.json` at `5516c44` declared version `0.2.0` before any tagged
 release, and `CHANGELOG.md` has no `0.2.0` entry — measured, so the extra entry is not drift. No version, tag,
 or release was touched.
+
+**Dated 2026-11-17 — the third pass is committed and pushed.** The pass's docs commit is `de228d0`
+(8 files: `docs/Tracked Issues.md`, `docs/decisions/adr-41.md`, `docs/decisions/adr-42.md`,
+`docs/decisions/index.md`, this report, `README.md`, `SECURITY.md`, `versions.json`), **151
+insertions / 17 deletions**, pushed `67d2814..de228d0 main -> main` [R]. Post-push measured:
+`git rev-parse --short origin/main` = `de228d0`; `git rev-list --count origin/main..HEAD` = **0**;
+`git status --porcelain` = **no output**; live doc set = **53** tracked files
+(`git ls-files docs README.md CHANGELOG.md SECURITY.md CONTRIBUTING.md`); `git ls-files
+docs/decisions | wc -l` = **43** (the **42** index rows plus `index.md`); the docket has **36** unique
+row markers T1-T36. Receipts at HEAD `67d2814` before the commit: `TYPECHECK EXIT:0`, 26 `VERDICT:
+GREEN` (f01-f26), `FIXTURES LOOP DONE`. A commit cannot carry its own hash — the same reason Phase 5's
+hash landed in a later commit — so `de228d0` is recorded here, in the next pass.
+
+**Dated 2026-11-17 — the red plan is written (Dan: "Go ahead with the red plan document").**
+The plan lives in Huginn as `Huginn/docs/Op Loop Red Plan.md` — planning only: no fixture built, no
+`.ts` file edited, rulings 0/1/3 ("wait for tasking") and ADR-34's status ("no fixture built, no code
+written") stand. Muninn's share of the seam re-measurement, all at HEAD `de228d0`: the frozen surface
+`src/api.ts:65-71` has **five** members; `fail()` at `:77-83`; `createMuninnApi` at `:110`;
+`SEMANTIC_SEARCH_HARD_CAP = 10000` at `:228`, used at `:250`; `openStore` at `store.ts:839` with the
+`openStore(':memory:')` precedent at `f01.ts:115` and `f04.ts:68`; the typed fakes at `f22.ts:41` and
+`f24.ts:56`; P1 at `f24.ts:85-92` asserts `keys.length === 5` with the five names enumerated;
+`git ls-files src/fixtures` = **26** files `f01.ts`-`f26.ts`; `package.json` scripts are `dev`,
+`build`, `typecheck` at `:8-10` — **no** `fixtures` script, so the run-all is the shell loop
+`for n in $(seq -w 1 26)`; `grep Worker` in `src` = **0** hits, which is why T4 (ADR-35, compute
+threading) is binding on the op loop: a turn makes many calls on a bounded main thread.
+Muninn's next fixture is **f27**, appended as the sixth door's red, and the run-all range moves to
+`seq -w 1 27`. The docket carries the canonical pointer to the plan; this report records the act as
+work, not as a status list.
