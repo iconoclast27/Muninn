@@ -44,6 +44,9 @@ deviation** (invariant stands, as-built contradicts it), **Partly superseded**.
 | 35 | Compute threading — a blocked main thread kneecaps model tool calls | Accepted **with named as-built deviation** | 10-24/11-01 | Declared v1 invariant; as-built has no workers, and the semantic scan is main-thread by design |
 | 36 | The API freeze — five doors, dark-safe, fixture-guarded | Accepted, in force | 2026-11-06, `be3a1b3` | "Any deviation requires a ruling, not an implementation decision"; F24 polices it |
 | 37 | `listNotes` — the sixth door | **Proposed — ruling owed** | drafted 2026-11-16 | Contract text prepared for the ruling; nothing implemented |
+| 38 | The Plugin 2 corpus in Muninn is retained as a **named oracle** | Accepted | Dan 2026-11-17 | 15 tracked files, no production path reaches them, f25/f26 are the only consumers; the corpus is Muninn's referee for the interface `listNotes` must preserve |
+| 39 | The three empty `src/` directories in Muninn are removed | Accepted | Dan 2026-11-17 | Git cannot track empty dirs, so the act leaves no commit — this ADR is the record; `.qwen/tmp` is out of scope (T36) |
+| 40 | Working documents live in the repo; nothing is kept twice for provenance | Accepted | Dan 2026-11-17 | `docs/Tracked Issues.md` is canonical for both projects; `/tmp` is for the length of one task; stating a fact twice is a drift opportunity |
 
 ## Supersession map
 
@@ -81,3 +84,13 @@ ADR-6): the facts behind each citation live in the ADR decision text, `docs/Init
 `CONTRIBUTING.md`, and the cited files are recoverable from the git history. The living record is
 `CHANGELOG.md` §Docs record and `docs/Initial Design Report.md` §22. Status lines that describe the archive
 as a destination are read against this addendum.
+
+## Addendum (2026-11-17, second pass) — ADR-38, ADR-39, ADR-40, and the docket's home
+
+Dan's rulings of 2026-11-17 are recorded as **ADR-38** (Plugin 2 corpus kept as a named oracle),
+**ADR-39** (the three empty `src/` directories removed), and **ADR-40** (working documents live in the repo;
+nothing is kept twice for provenance). **No earlier ADR body is edited** (ruling 2, ADR-6): ADR-7, ADR-27,
+ADR-28, and ADR-34 keep their acceptance-time text, and ADR-38 extends them. The tracked-issues docket moves
+into the repo as `docs/Tracked Issues.md`, canonical for **both projects**, with a pointer stub in Huginn
+(`Huginn/docs/Tracked Issues -- Pointer.md`). T1, T2, and T3 close; **T36** (`.qwen`) is raised and closes
+the same day on Dan's ruling — see `adr-39.md`.

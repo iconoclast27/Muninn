@@ -567,6 +567,7 @@ this report / conventions:
 | `Release Ritual -- Walkthrough.md` | **canonical** conventions (ADR-8 authority) |
 | `Project Prompt.md` | **merged into `CONTRIBUTING.md`, then archived** (approved triage row 26), tombstoned *Archived 2026-11-17*, **deleted 2026-11-17** |
 | `README.md` (repo root) | **canonical** |
+| `Tracked Issues.md` | **canonical for both projects**, added 2026-11-17 (second pass, ruling 40 / `adr-40.md`); Huginn keeps a pointer stub. The docket's facts are measured findings, Dan's rulings verbatim, and pointers to the committed execution record — it copies nothing that this report already states |
 | `Plugin 2 Harness.md` | **archive with tombstone → Huginn's harness doc** (ruling 7) |
 | `tool-skill-strategy.md` | **archive with tombstone → Huginn** (ruling 7); R9/R10 mined into ADR-32 |
 | `Standing Qwen prompt.txt` | **archive** (ruling 9); seven-rule contract mined into ADR-21/conventions |
@@ -635,3 +636,46 @@ CONTRIBUTING.md` = **47 tracked files** [R]: `README.md`, `CHANGELOG.md`, `SECUR
 Muninn `listNotes` (ADR-37, **Proposed — ruling owed**) first, then Huginn's mirror at
 `src/muninn-api.ts:57`, then `list` in the op loop. **Huginn cannot lead.** No version bump, tag, release
 cut, or release push is authorized.
+
+## 23. Second pass, 2026-11-17 — rulings on T1, T2, T3, and the docket's home
+
+Three rulings from Dan closed docket rows and are recorded as ADRs:
+
+- **T1 — "T1, keep as a named oracle… It may even be useful to test your additive method"** (Dan,
+  2026-11-17), **"Let's go with A."** → `adr-38.md`. Measured census before the ruling:
+  `git ls-files src/harness src/llm src/recipes` = **15 tracked files**; `git grep -l "recipes/" HEAD -- src`
+  returns **only the 7 recipe files' self-imports**; only `f25.ts`/`f26.ts` import the corpus; Design Report
+  §14 line 150 already recorded dormancy. The 15 files stay tracked and green; the fixture chain
+  `f01..f26` stays gapless; f25/f26 are named as Muninn's referees for the interface **ADR-37 (`listNotes`)
+  must not disturb** — f26 guards harness reference counting and dwell, f25 the registry/approval/prompt-safety
+  contract.
+- **T2 — "T2, remove the empty directories."** (Dan, 2026-11-17) → `adr-39.md`. Executed 2026-11-17:
+  `rmdir src/probe src/rebuild src/search` after measuring the dirs empty, 0 files, 0 tracked. Re-measured
+  after: no empty dirs in `src`, `git status --porcelain` clean. **The act leaves no commit** — git cannot see
+  an empty directory, so the ADR is the record. `.qwen/tmp` measured empty in the same pass and is **out of
+  this ruling's scope** → **T36**, ruling owed.
+- **T3 — "T3, that's fine."** (Dan, 2026-11-17) → closed. The Phase 1 count correction is §18 item 12,
+  committed in `9b2a2bd`.
+- **The storage ruling → `adr-40.md`:** a working document that outlives one task lives in the repo;
+  `/tmp` is for the length of one task; provenance-only copies are not preserved, because stating a fact
+  twice is a drift opportunity. The docket therefore moves into the repo as **`docs/Tracked Issues.md`,
+  canonical for both projects**, with a pointer stub in Huginn. It copies nothing: the execution record,
+  approvals, and dispositions stay where this report and `CHANGELOG.md` state them, and the docket points at
+  them.
+
+**T36 — "You can remove .qwen"** (Dan, 2026-11-17). Measured before removal: `find .qwen -type f` = **1**
+(`.qwen/settings.json`), `git ls-files .qwen | wc -l` = **0**; `rm -r .qwen`. Re-measured:
+`find . -maxdepth 2 -type d -empty -not -path "./.git*"` → **no output**, `git status --porcelain` shows only
+the docs of this pass. Tool residue, untracked, so it leaves no commit; `adr-39.md` carries the scope.
+
+**Receipts for this pass, measured at HEAD `6b76e41` before the docs commit (pasted, not stored):**
+`HEAD: 6b76e41` · `TYPECHECK EXIT:0` · `grep -c 'VERDICT: GREEN'` → **26** · `FIXTURES LOOP DONE`
+(`bash` loop over `f01..f26`, exit 0). Huginn measured the same day at HEAD `9030196`:
+`TYPECHECK EXIT:0` · `FIXTURES EXIT:0` · **30 `VERDICT: GREEN`**. The `rmdir` act leaves no commit, and
+`git status --porcelain` in Muninn shows only the docs of this pass (`M docs/Initial Design Report.md`,
+`M docs/decisions/index.md`, `M README.md`, `M CONTRIBUTING.md`, `?? docs/Tracked Issues.md`,
+`?? docs/decisions/adr-38.md`, `?? docs/decisions/adr-39.md`, `?? docs/decisions/adr-40.md`).
+**Measured doc counts before this pass:** Muninn **47** tracked doc files, Huginn **50** [R]. This pass adds
+4 tracked files to Muninn (`docs/Tracked Issues.md`, `adr-38.md`, `adr-39.md`, `adr-40.md`) and 1 to Huginn
+(`docs/Tracked Issues -- Pointer.md`); the new files are untracked until Dan authorizes the commit, so the
+counts above are the pre-pass numbers, not the post-pass claim.

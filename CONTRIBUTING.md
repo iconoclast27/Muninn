@@ -43,7 +43,12 @@ terminal output, not by a claim.
 
 `docs/Initial Design Report.md` is the canonical as-built description. `docs/decisions/` holds the ADRs,
 numbered from 1. **An ADR is never edited after acceptance** (ADR-6): a changed decision is a new ADR
-marking the old one Superseded. `docs/TESTING1.md` is the living manual-smoke contract — manual smoke is
+marking the old one Superseded. **The tracked-issues docket is `docs/Tracked Issues.md`, canonical for both
+projects** (Muninn owns it; Huginn keeps a pointer stub) — raised findings stay on the docket until
+investigated, and the docket carries receipts and pointers, never copies of facts already committed.
+**A working document that outlives one task lives in the repo; nothing is kept twice for provenance,
+because stating a fact twice is a drift opportunity** (ADR-40).
+`docs/TESTING1.md` is the living manual-smoke contract — manual smoke is
 Dan's act in Obsidian, and fixture-green is not production-live. `docs/Release Ritual -- Walkthrough.md`
 is the release doctrine. Every durable fact is mined into the canonical set; `docs/archive/` **was deleted
 2026-11-17** (Phase 5, Dan's authorization) — the record is `docs/Initial Design Report.md` §22 and

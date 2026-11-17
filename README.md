@@ -16,8 +16,12 @@ Canonical set (single source of truth — every durable fact is mined into these
 
 - [`docs/Initial Design Report.md`](docs/Initial Design Report.md) — the as-built description at
   `b75c408` / `0.2.0-test.15` (recorded 2026-11-16).
-- [`docs/decisions/index.md`](docs/decisions/index.md) — the 37 ADRs, numbered from 1, status table and
+- [`docs/decisions/index.md`](docs/decisions/index.md) — the 40 ADRs, numbered from 1, status table and
   supersession map. **An ADR is never edited after acceptance.**
+- [`docs/Tracked Issues.md`](docs/Tracked%20Issues.md) — **the tracked-issues docket, canonical for both
+  projects** (Muninn and Huginn). Raised findings stay on the docket until investigated; Huginn keeps a
+  pointer stub. Findings are measured receipts, Dan's rulings verbatim, and pointers to the committed record
+  — the docket copies nothing that this report already states.
 - [`docs/TESTING1.md`](docs/TESTING1.md) — the living manual-smoke contract, version-pinned.
 - [`docs/Release Ritual -- Walkthrough.md`](docs/Release%20Ritual%20--%20Walkthrough.md) — release doctrine
   (Huginn keeps a pointer stub to it).
