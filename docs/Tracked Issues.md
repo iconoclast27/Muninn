@@ -28,6 +28,9 @@ drift, so this docket does not copy facts that the repos already state: it point
   `adr-39.md`, `adr-40.md`.
 - The serial-contextual-operations rulings R1–R14 of 2026-11-15 are law in
   `Huginn/docs/Serial Contextual Operations Design (Ruled).md`.
+- The ruling of 2026-11-18 that closes **T4** — recorded verbatim below, and in Muninn `adr-43.md`.
+- The ruling of 2026-11-18 that closes **T15** and opens **T37** — recorded verbatim below, and in Muninn
+  `adr-37.md` (the contract itself).
 
 ## Tracked issues (the docket — stays open until investigated)
 
@@ -36,7 +39,7 @@ drift, so this docket does not copy facts that the repos already state: it point
 | **T1** | Plugin 2 code left in Muninn, referee'd by fixtures | `084a076` removed all Plugin 2 imports from `main.ts`/`settings.ts`; `main.ts:90-91` states the harness has moved to Huginn; `src/harness/` 5 files, `src/llm/` 1, `src/recipes/` 7 (incl. `tag-assignment.md`) exist; only `f25.ts`/`f26.ts` import them; f25/f26 are GREEN | **CLOSED — ruled 2026-11-17, Muninn `adr-38.md` (option A: kept as a named oracle)** | Rule taken. The consumer census was measured before the ruling: `git ls-files src/harness src/llm src/recipes` = **15 tracked files**, `git grep -l "recipes/" HEAD -- src` returns **only the 7 recipe files' self-imports**, `main.ts:90-91` states the harness has moved to Plugin 2, `settings.ts` imports nothing from the corpus, and Design Report §14 records "Plugin 2 harness is dormant — `harness.ts`/`recipe-registry.ts` exist, nothing calls them" (line 150). f25 (protocol conformance) and f26 (dwell + harness reference counting, 13 assertions) are the corpus's only consumers and are the referees for the interface `listNotes` must preserve (T15). Huginn's harness is the ported live copy, so the corpus is duplicated; the duplication is accepted as the price of the oracle. |
 | **T2** | Empty untracked directories in Muninn `src/` | `src/search/`, `src/probe/`, `src/rebuild/` — 0 files each, dated 2026-11-03; `docs/AGENTS/SKILLS/` 0 files (ruled: delete, ruling 10) | **CLOSED — ruled by Dan 2026-11-17 ("T2, remove the empty directories"), executed the same day; Muninn `adr-39.md`** | Executed: `rmdir src/probe src/rebuild src/search` after measuring `find src -maxdepth 1 -type d -empty` (the three dirs), `find ... -type f | wc -l` = 0, `git ls-files src/probe src/rebuild src/search | wc -l` = 0. Re-measured after: `find src -maxdepth 1 -type d -empty` = empty, `git status --porcelain` = clean. Huginn measured no empty dirs in `src/`. Git cannot track empty directories, so the act leaves no commit. `.qwen/tmp` is **not** in this ruling's scope — see T36. |
 | **T3** | Phase 1 doc-count error (my own drift, ledgered) | Measured 2026-11-16: 37 tracked files under `Muninn/docs/` (23 `docs/ARCHIVE/` + 14 live) + `README.md` = 38 [R]; Phase 1 header said "34 tracked docs + README" and "11 live files" | **CLOSED — corrected 2026-11-17; Muninn Design Report §18 item 12, committed `9b2a2bd`** | Discharged by Dan's ruling 2026-11-17 ("T3, that's fine"). The Phase 1 file rows themselves were complete; only the header counts were wrong. Huginn re-counted with the same method (Phase 3, 24 tracked `docs/` files + 2 root `README.md`/`CONTRIBUTING.md`). |
-| **T4** | Compute threading invariant unmet as-built (ADR-35) | `grep Worker` in Muninn `src/` = 0 hits; `api.ts:234` names the main-thread cost the cap bounds | OPEN — ruling owed | Worker for store/embedding path, chunked/aborted scan, or declared limitation with disclosure. Binding on Huginn's op loop. |
+| **T4** | Compute threading invariant unmet as-built (ADR-35) | Measured 2026-11-18: `git grep -il worker HEAD -- src` = **0 hits in Muninn, 0 hits in Huginn**; `searchSemantic` (`api.ts:133-155`) has one `await` — the embedder at `:144` — so its scan runs synchronously inside an `async` method | **CLOSED — ruled 2026-11-18 by Dan, verbatim: "Declared limitation, we can revisit if the problem bites." Muninn `adr-43.md`** | Rule taken. The ruling, its disclosure obligation, the reopening trigger, and the frozen-shape guard are in `adr-43.md` — not restated in this row. **T8** (ANN for >10k chunks) stays open: today's ruling was about threading, not the index. |
 | **T5** | Mobile live receipt owed (ADR-14) | Mobile lane fixture-proven M1–M3 only; `isDesktopOnly: false` is correct, supersession text owed | OPEN — parked by Dan (ruling 11) | Live mobile index test. Not a bug. |
 | **T6** | Folder-rename child-path production receipt owed (ADR-5) | `renamePrefix` exists at `store.ts:469`, `intake/lane.ts:163`; the 2026-11-04 review asked to "smoke-test a folder rename, watch child paths" | OPEN | Live receipt in Obsidian. |
 | **T7** | `onunload` durability best-effort/async (named debt, ADR-29) | `main.ts:179` comment "unload-time flush is best-effort" [R]; 2 s debounce | OPEN — named debt | Accept as declared limitation, or a durability ruling. |
@@ -47,7 +50,7 @@ drift, so this docket does not copy facts that the repos already state: it point
 | **T12** | Bounded tag-assignment retry | Slotted for the next release | OPEN | Ruling + fixture. |
 | **T13** | Memory Feedback Loop release | Design + Implementation Guide exist; the guide plans fixtures **F26–F30** against the chain **already taken** by the shipped fixtures (`f26..f30`, `package.json`'s `fixtures` script [R]), and its prose calls its gates "F26", "F28", "F29" where those are Muninn's fixture numbers | **OPEN — ruling + release slot owed, and a numbering ruling owed** | The Memory Loop's ranking fixtures must be numbered **f37+** in Huginn (the chain runs `f01..f30`; the next number is `f31`, reserved for the op loop, and Muninn's next is `f27`). Fixture numbers are not an implementation decision. The guide's F-numbers must be conformed to the real numbers, in the guide, at release slotting. |
 | **T14** | Null-failure cause (chat) | Blocked on recurrence | OPEN — blocked | Recurrence receipt. |
-| **T15** | `listNotes` ruling (ADR-37, Proposed) | Contract text drafted 2026-11-16; Huginn enumeration forbidden; `criteria.tag` inexpressible today (`tagVocabulary()` returns counts, not paths) | OPEN — ruling owed | Rule the contract, then Muninn `api.ts` → Huginn mirror → `list` in the loop. |
+| **T15** | `listNotes` ruling (ADR-37, Proposed) | Contract text drafted 2026-11-16; Huginn enumeration forbidden; `criteria.tag` inexpressible today (`tagVocabulary()` returns counts, not paths) | **CLOSED — ruled 2026-11-18 by Dan ("I agree the door" … "1, 2, 3, 4 agreed. 5. recommendation accepted. 6. That waits on that proposed addons list"). Muninn `adr-37.md` — Accepted; contract of record, not restated here** | Rule taken. The contract and its implementation obligations are in `adr-37.md`; the implementation is a **separate authorization** (contract → red `f27` → `api.ts` → fakes → Muninn's release → Huginn's mirror → `list`). |
 | **T16** | Huginn has no release doc; Muninn's ADR-8 is the doctrine | Muninn `docs/Release Ritual -- Walkthrough.md` exists; Huginn `docs/` has none [R] | **CLOSED — pointer stub written 2026-11-17** (`Huginn/docs/Release Ritual -- Pointer.md`, Phase 4) | Discharged. Muninn's `docs/Release Ritual -- Walkthrough.md` remains the doctrine of record; the stub names the three differences (Huginn owns the bump commit, the tag, and the release). |
 | **T17** | `CHANGELOG.md` owed in both projects (ruling 5) | Measured: neither repo has one | **CLOSED — written in both repos 2026-11-17, placement ruled 2026-11-17: root** (`T17/18 -- agreed, root`; Muninn `docs/decisions/adr-42.md`) | Discharged. Muninn `CHANGELOG.md` from 15 measured tags, Huginn from 20. Root placement: `README.md:13` (Muninn) and `README.md:62` (Huginn) name the file, GitHub discovers `CHANGELOG.md`/`SECURITY.md` at the root without a click, and a release page links them. |
 | **T18** | `SECURITY.md` owed in both projects (ruling 6) | Measured: neither repo has one | **CLOSED — written in both repos 2026-11-17, placement ruled 2026-11-17: root** | Discharged. Private/experimental posture, no warranty, no issue channel, external requirements. Root placement, same ruling as T17. `SECURITY.md` in Huginn is conformed to the model-layer scope ruling below (T33). |
@@ -72,6 +75,7 @@ drift, so this docket does not copy facts that the repos already state: it point
 | **T34** | The Muninn Design Report §20 registry contradicted the **approved** triage table | The §20 row said `Muninn Store Rewrite Specification.md` "**canonical**, stays" and `Project Prompt.md` "**canonical**", against the approved triage rows 25 ("Mined, then **archive**") and 26 ("**Merge**, then archive"). Measured 2026-11-17: **88 lines in 34 Muninn ADR files** cite the store spec; the contract text survives in ADRs and Design Report §4/§6/§8, so nothing was lost | **CLOSED — registry conformed 2026-11-17 (the execution followed the approved table)** | The two §20 rows are conformed, the header names the store contract of record (Design Report §4/§6/§8 + ADR-4, 9, 10, 22, 31, 32, 36), and `docs/Unified Project Definition v0.2.md:7` carries the supersession note. Nothing further owed. |
 | **T35** | ADR and design-doc evidence citations point at deleted archive files | Measured after Phase 5: **88 lines in 34 Muninn ADR files** [R] and **60 lines in Huginn `docs/decisions/`** [R] cite names in `docs/archive/`, which is now deleted; the bodies of Muninn `adr-31.md`/`adr-32.md` and `Huginn/docs/decisions/adr-31.md` name `Muninn Store Rewrite Specification.md` as the canonical store spec | **RECORDED STATE — not an issue to fix** | Ruling 2 (ADR immutability, Muninn `docs/decisions/adr-06.md`) forbids editing the bodies. The dated addenda in both `docs/decisions/index.md`, `CONTRIBUTING.md` in both repos, and Design Report Muninn §22 / Huginn §19+§21 carry the rule: citations are **dated statements at acceptance**, the facts are in the canonical docs, and the cited files are recoverable from git history (`git log --diff-filter=D`). Nothing further to do. |
 | **T36** | `.qwen/tmp` was an empty directory in the Muninn working tree | `find . -maxdepth 2 -type d -empty -not -path "./.git*"` in Muninn, 2026-11-17: `./src/probe`, `./src/rebuild`, `./src/search`, **`./.qwen/tmp`** [R]; `find .qwen -type f` = **1 file** (`.qwen/settings.json`, qwen-code permission settings), `git ls-files .qwen | wc -l` = **0** (untracked) [R]; `.qwen/` was deleted by Dan 2026-11-13 (`docs/archive/Handover 2026-11-13.md:55`, archived then deleted, recoverable from history) [R] | **CLOSED — Dan ruled "You can remove .qwen" 2026-11-17; removed the same day** | Executed: `rm -r .qwen` after measuring the file count and 0 tracked files. Re-measured: `find . -maxdepth 2 -type d -empty -not -path "./.git*"` → **no output**; `git status --porcelain` shows only the docs of this pass. Tool residue, not project layout; Muninn `adr-39.md` carries the scope. |
+| **T37** | The **proposed add-ons list** — features deferred past the enumeration door: **Dataview integration** and **structural predicates** (e.g. "notes in a folder with no frontmatter") | Measured 2026-11-18: `frontmatter` appears **nowhere in the store schema** (`git grep -n "frontmatter\|fm\b" HEAD -- src/store/store.ts` = **0 hits**), the partition lives in the chunker (`chunker/chunker.ts:152`, `:167`), and structural queries need a column on `files` — a schema ruling and epoch bump. Dataview is a third-party plugin: reading it from Huginn touches the ADR-34 boundary, so it is Muninn-side, not Huginn-side | **OPEN — deferred by Dan's ruling of 2026-11-18, point 6: "That waits on that proposed addons list"** — "much, much later" | A list, not a plan. When it is opened, each item gets its own ruling: Dataview = a boundary ruling (ADR-34) plus a door; structural predicates = a schema ruling plus an epoch bump plus a fixture. Nothing in T15's contract anticipates them. |
 
 ## Where the execution record lives (no copies in this docket)
 
@@ -95,13 +99,14 @@ deletions without Dan's explicit authorization. Phase 4 and Phase 5 were authori
 
 ## Open rulings owed to Dan
 
-**T4** (compute threading, ADR-35 — cheap ruling is "declared limitation with disclosure", expensive ruling
-is a worker; **binding on the op loop**),
 **T11** (verbose coverage for the four channel-less recipes), **T12** (bounded tag-assignment retry),
 **T13** (Memory Loop fixture numbering: the guide plans F26–F30 against the taken `f26–f30` chain, so
 **f37+** — a numbering ruling, and the guide's F-numbers must be conformed), **T14** (null-failure cause —
-blocked on recurrence), **T15** (`listNotes` contract — Muninn `adr-37.md` / Huginn `adr-33.md`,
-**Proposed**).
+blocked on recurrence), **T37** (the proposed add-ons list — Dataview integration, structural predicates —
+deferred by Dan's ruling of 2026-11-18, "much, much later"). **T4 closed 2026-11-18** (declared limitation,
+Muninn `adr-43.md`); **T15 closed 2026-11-18** (the door is ruled, Muninn `adr-37.md` **Accepted**), so the
+op loop's gate list is **T13** alone. **Implementation of the door is a separate authorization**: the ruled
+contract does not authorize code.
 
 **The red plan is written (2026-11-17, Dan's request "Go ahead with the red plan document"):**
 `Huginn/docs/Op Loop Red Plan.md` — planning only. It re-measures every seam at HEAD `de228d0`
@@ -113,15 +118,20 @@ sequence (Muninn `f27` red at the five-door surface → implementation with fake
 release act → the Huginn mirror → `f31`–`f36` in ADR-34's order → the loop and UI leg → `TESTING1`
 redefinition → the merged smoke), and lists the authorization gates. **No coding, no fixture, no code
 commit is authorized** — the docs pass that carries this pointer is Dan's authorized act, batched as
-one commit per repo. T15, T13, T4 are its gates. The plan is tracked in Huginn as
-`docs/Op Loop Red Plan.md`; this docket row is its canonical pointer, and each repo's Design Report
-records the act as work, not as a status list.
+one commit per repo. **T13 is its remaining gate** (T4 was ruled 2026-11-18, Muninn `adr-43.md`; **T15 was
+ruled 2026-11-18, Muninn `adr-37.md` Accepted**, so the door's contract is law and its implementation is a
+separate authorization). The plan
+is tracked in Huginn as `docs/Op Loop Red Plan.md`; this docket row is its canonical pointer, and each
+repo's Design Report records the act as work, not as a status list.
 
 **Closed by rulings of 2026-11-17** — T1 (named oracle, `adr-38.md`), T2 (`rmdir` of the three empty `src/`
 dirs, `adr-39.md`), T3 (Phase 1 count correction, Design Report §18 item 12), T10 (all memory files deleted
 from the vault by Dan), T17/T18 (root placement agreed), T24/T25 (`versions.json` completed by the executor
 on Dan's request), T33 (model closures are coding/production-side, not user-side), T36 (`.qwen` removed,
-`adr-39.md`). **Parked by Dan, not open for the executor:** T5 (mobile live receipt, ruling 11). **Live-receipt
+`adr-39.md`). **Closed by Dan's rulings of 2026-11-18:** **T4** (declared limitation, Muninn `adr-43.md`)
+and **T15** (the enumeration door ruled, Muninn `adr-37.md` **Accepted** — the ruled contract is the record,
+not restated here; **implementation is a separate authorization**).
+**Parked by Dan, not open for the executor:** T5 (mobile live receipt, ruling 11). **Live-receipt
 items requiring the app open** (Dan's act in Obsidian): T6, T9 (the merged manual smoke is the release gate).
 **Named debts needing a ruling that is not cheap:** T7 (`onunload` best-effort flush), T8 (ANN for >10k
 chunks). **Work that moves with the op loop, not before it:** T20 (Scenarios B, D, F, I + E/G chat legs,
@@ -162,3 +172,55 @@ whose observable — the turn receipt — does not exist yet).
 - **"Go for 1-4."** Authorization for the quick pass: record this pass's commit hashes in the Design
   Reports, verify the docket's pointers resolve, and confirm the archive-language and version-consistency
   measurements. No version bump, no tag, no release cut.
+
+## Addendum, 2026-11-18 — Dan's ruling on **T4**, verbatim
+
+- **T4 — "Declared limitation, we can revisit if the problem bites."** (Dan, 2026-11-18). The ruling is
+  Muninn `adr-43.md`; its content is not restated here. **T4 closes; T8 stays open; the op loop's gate list
+  becomes T15 and T13.** No code, fixture, version, tag, or release is authorized by this act.
+
+## Addendum, 2026-11-18 — Dan's ruling on **T15**, verbatim (second pass)
+
+The contract's choice points were put to Dan as six numbered questions, in prose, with the measured seams at
+the end as backing. Dan ruled:
+
+- **"Of course I agree the door."**
+- **`title` → two fields.** "I suppose title has to be filename, since null information has null value",
+  then, on the two kinds of query: "One would require the path and filename, the other requires the semantic
+  header. **So we need to have filename AND header.**"
+- **`mtime` stays.** "mtime should stay in determining hot/cold notes later. It hasn't been used because the
+  eventlog drifted away from doing anything useful before it was removed."
+- **`total` approved; `mode` agreed.**
+- **`limit` optional, per recipe** — Dan's own proposal ("requested but optional (could be required or not in
+  the recipe)"), after naming the unbounded-set problem: **"Queries can be open questions. 'Add tags to all
+  notes in the Guitar folder' is an unbound set. How do you propose to cap that kind of query without giving
+  it a false boundary?"** With the answer accepted, he added the guard: **"a hard limit is a sign that the
+  model's query was not specific enough"**, and **"the phrasing of the prompt is the quick guard."**
+- **`query` must exist.** "Not having query poses a risk to functionality, because the model needs a way to
+  query ground state. Muninn is intended to be the safe enabler of that."
+- **The two kinds.** "I just realised we have two different kinds of queries in the use case. One is defined
+  easily by path, which is 'all notes in X folder' type. The other type is 'all notes like X' type, which is
+  semantic. We need to somehow be able to handle both."
+- **Rulings 1–6:** **"1, 2, 3, 4 agreed. 5. recommendation accepted. 6. That waits on that proposed addons
+  list."** Points 1–4 = `filename`+`header`, `mode` in the answer, field-per-lane `query`, `limit` optional
+  with `total` as truth and `offset` for paging; point 5 = the semantic lane enters the door now, as a
+  ranking; point 6 = the deferral, opened as **T37**. **The contract itself is Muninn `adr-37.md`; the shape
+  is not restated here.**
+- **The add-ons list is Dan's act:** "6. is part of the Dataview idea, which just needs to go into a list of
+  proposed addons to be looked at much, much later."
+
+**The contract itself lives in Muninn `adr-37.md` (Accepted)** and is not restated here. **T15 closes; T13 is
+the loop's only remaining gate.** The docket's measured add-ons row is **T37**. **No implementation is
+authorized by this act**: no `api.ts` member, no `f27`, no mirror, no `main.js`, no version, no tag, no
+release.
+
+**Two acts on Dan's authorization the same day, not rulings:** `package.json` gains the `fixtures` chain
+(`f01`–`f26` in order, appended with no gaps), mirroring Huginn's precedent at `package.json:11`, so
+`npm run fixtures` is the canonical run-all in both repos; and `.gitignore` gains the `AGENTS.md` /
+`docs/AGENTS/` paths in both repos, so the untracked agent files leave `git status --porcelain`. The
+fixture-script act closed a false receipt: a pass record cited `npm run fixtures` in Muninn where **no such
+script existed** (`npm` answered `Missing script: "fixtures"`), and `FIXTURES LOOP DONE` is a **label for the
+loop finishing with exit 0**, not literal stdout — the loop's literal output is the 26 `[F0n] VERDICT: GREEN`
+lines. Records now name what is reproducible: `EXIT:0` + `26 VERDICT: GREEN` (Muninn), `EXIT:0` +
+**30 `VERDICT: GREEN`** (Huginn). Commit and push for this pass are Dan's authorized act, batched as **one
+commit per repo**.

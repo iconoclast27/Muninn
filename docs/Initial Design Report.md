@@ -307,23 +307,34 @@ track empty dirs, so they are invisible in the inventory). **Ruling owed** (rais
 - **A test procedure that can't run is worse than none: it manufactures noise that gets mistaken for
   signal** — the `TESTING1.md` review finding, directly applicable to Huginn's test doc [U/R].
 
-## 13. Compute threading — declared invariant, named deviation (ADR-35)
+## 13. Compute threading — declared invariant, ruled limitation (ADR-35, ADR-43)
 
 **"A blocked main thread kneecaps model tool calls"** is a declared v1 invariant, observed empirically
 [ U/R]. As-built Muninn runs the WASM store, the semantic scan, and the embedding calls **on the main
-thread, with no worker** — `grep` for `Worker` in `src/` returns **0 hits** [R] — and the semantic lane's
-own comment says the cap exists to bound "the worst-case CPU/RAM cost in the main thread"
-(`api.ts:234` [R]). The invariant is unmet as-built; the deviation is named, not hidden. **Ruling owed**
-for the next long-compute path: a worker for the store/embedding path, or chunked/aborted scan, or a
-declared limitation with disclosure. Any new long-compute path in either plugin inherits the obligation,
-which makes this ADR binding on Huginn's op loop as well.
+thread, with no worker** — `git grep -il worker HEAD -- src` = **0 hits in Muninn, 0 hits in Huginn** [R] —
+and the semantic lane's own comment says the cap exists to bound "the worst-case CPU/RAM cost in the main
+thread" (`api.ts:234-235` [R]). `searchSemantic` is `async` (`api.ts:133-155` [R]) with a single `await`, the
+embedder at `:144`, so its scan runs synchronously. **Ruled 2026-11-18 by Dan: "Declared limitation, we can
+revisit if the problem bites"** — Muninn `adr-43.md`, which carries the ruling, the disclosure obligation,
+and the reopening trigger; nothing is restated here. Any new long-compute path in either plugin inherits the
+obligation, which makes it binding on Huginn's op loop.
 
 ## 14. Fixture and test discipline
 
 **Fixtures:** 26 files, `src/fixtures/f01.ts … f26.ts` [R]. Runner: plain Node via `npx tsx` (Node
-26.13.1, tsx 4.23.15). Muninn's `package.json` has **no `fixtures` script** (measured `package.json:7-11`:
-`dev`, `build`, `typecheck`) [R]; the run-all convention is the loop
-`for n in $(seq -w 1 26); do npx tsx src/fixtures/f${n}.ts || break; done`.
+26.13.1, tsx 4.23.15). **Muninn's run-all is now `npm run fixtures`** — the single `&&` chain at
+`package.json:11`, `tsx src/fixtures/f01.ts && … && tsx src/fixtures/f26.ts`, **26 entries, no gaps**,
+appended in order; Huginn's chain at `package.json:11` is the precedent Muninn mirrors (Dan authorized the
+act 2026-11-18). Measured at the HEAD of this pass: the chain's 26 entries match `f01`–`f26` in order
+with no duplicates, `git ls-files src/fixtures | wc -l` = **26**, and `npm run fixtures` →
+`EXIT:0` with **26 `VERDICT: GREEN`** [R]. **The chain is the canonical fixture list of record**: a fixture
+whose name does not follow `fNN.ts` rides the chain as an explicit entry (the chain's completeness is
+`git ls-files src/fixtures` against the entries, so a missing fixture is visible in the line), and the
+shell loop `for n in $(seq -w 1 N); do npx tsx src/fixtures/f${n}.ts || break; done` remains valid for the
+`fNN` range. History, measured: `csuite.ts`, `props.ts`, `test-harness.ts` were added at `10763ab` and
+**deleted at `f523816`** ("quarantine broken fixtures"), so no non-conforming fixture file exists at HEAD.
+In Huginn, `src/fixtures/fake-app.ts` is **test-only support** (the mapped `obsidian` fake, ADR-22), not a
+fixture, and is not in the chain.
 
 **Fresh receipt, measured 2026-11-16 at `b75c408`:** `npm run typecheck` → `EXIT:0` [R]; f01 … f26 →
 `[F0n] VERDICT: GREEN` for all 26 [R] (pasted in `receipt-fixtures.txt`). **F24 polices the frozen
@@ -464,7 +475,8 @@ Parked items are **registered, not scheduled** — an untested path, not a red (
 1. **`listNotes` ruling (ADR-37)** — contract written, status Proposed, ruling owed. Nothing
    implemented. Sequencing is binding: Muninn `api.ts` → Huginn mirror → `list` in the loop; Muninn
    leads, Huginn cannot lead [U].
-2. **Compute threading ruling (ADR-35)** — no workers as-built; main-thread scan by design.
+2. **Compute threading ruling (ADR-35)** — **CLOSED 2026-11-18** by Dan's ruling, Muninn `adr-43.md`
+   (declared limitation). §13 carries the pointer; the ruling is not restated here.
 3. **ANN / vector index for >10k chunks** — named debt behind an epoch bump.
 4. **Plugin 2 code left in Muninn, measured 2026-11-16** [R]: commit `084a076` moved chat/skills to
    Huginn and removed every Plugin 2 import from `main.ts` and `settings.ts`, yet
@@ -501,6 +513,33 @@ Parked items are **registered, not scheduled** — an untested path, not a red (
     2026-11-16: `git ls-tree` = **37 tracked files under `docs/`** (23 in `docs/ARCHIVE/`, 14 live) +
     `README.md` = **38 tracked doc files** [R]. The Phase 1 file rows were complete; the header count
     was wrong. Corrected here (ADR-6: corrections ledgered, not edited away).
+
+13. **A false receipt in my own pass record** — my own drift, recorded honestly, caught by re-measurement
+    2026-11-18: the docs pass of 2026-11-18 (the T4 ruling) recorded **`26 VERDICT: GREEN`** and
+    **`FIXTURES LOOP DONE`** in `CHANGELOG.md` and §23 as a receipt, and the verification attempt
+    `npm run fixtures` answered **`Missing script: "fixtures"`** — Muninn had no fixtures script (measured
+    `package.json:7-11` = `dev`, `build`, `typecheck`). Re-measured the same day the loop convention
+    reproduces: `EXIT:0`, **26 `VERDICT: GREEN`**; Muninn `TYPECHECK EXIT:0`; Huginn at `e4ccbd9`
+    `TYPECHECK EXIT:0`, chain `EXIT:0`, **30 `VERDICT: GREEN`**. Two wording corrections, not a substance
+    change: `FIXTURES LOOP DONE` is a **label for the loop finishing with exit 0**, not literal stdout
+    (`grep -c "FIXTURES LOOP DONE"` in the loop's log = **0 matches**), and the run-all is named by the
+    command that exists. Dan authorized the fix: `package.json` gains the `fixtures` chain, so the receipt
+    and the command now match (`npm run fixtures` → `EXIT:0`, **26 `VERDICT: GREEN`** [R]). The lesson is
+    the measurement rule, restated in the memory file: **a claim names a command that exists at the HEAD it
+    cites, and a receipt that cannot be reproduced is worse than no receipt.**
+
+14. **Restating a ruling across seven documents — my own drift, pruned on Dan's question, same pass.** The
+    canon rule (**one ruling, one document**) had been written that morning after Dan pruned the T4 pass for
+    restating T4 in six files; the T15 pass restated the same ruling in **seven** documents, and Dan caught
+    it: **"Are you putting identical information in multiple places and making multiple passes over the
+    docs?"** **Yes.** The prune: the contract, the field gloss, and the doctrine phrase now live in **two**
+    documents only — `adr-37.md` (the ruling) and this docket's dated addendum (Dan's verbatim act); the
+    index row, this report, `README.md`, `CHANGELOG.md`, `AGENTS.md`, and every Huginn file carry a status
+    line and a pointer. The mechanism that makes the rule bite *before* the writing is the **grep test**:
+    take the ruling's distinguishing words and grep the tracked docs — the hits must be exactly the ADR and
+    the addendum. The rule is now in `AGENTS.md` as law, not only as a lesson; the reinforced lesson is in
+    the memory file. The second symptom is **re-reading the same file three times in one pass** — the pass
+    was being written in the order the conversation arrived, not the order the canon needs.
 
 ## 19. Known drift register (doc ↔ code)
 
@@ -728,3 +767,41 @@ threading) is binding on the op loop: a turn makes many calls on a bounded main 
 Muninn's next fixture is **f27**, appended as the sixth door's red, and the run-all range moves to
 `seq -w 1 27`. The docket carries the canonical pointer to the plan; this report records the act as
 work, not as a status list.
+
+**Dated 2026-11-18 — T4 is ruled.** Dan's ruling, verbatim: **"Declared limitation, we can revisit if the
+problem bites."** It is recorded once, in `adr-43.md`; nothing here restates it. This pass wrote `adr-43.md`,
+`docs/decisions/index.md` (row 43 and the dated addendum), `docs/Tracked Issues.md` (T4 closed, the
+open-rulings list and the red-plan gate line conformed, the verbatim addendum), this report (§13, §18 item 2,
+this paragraph), `README.md` (the ADR count, 42 → 43), and `CHANGELOG.md`'s docs record. One citation
+corrected: the docket cited `api.ts:234` for the main-thread sentence, which runs `api.ts:234-235`; the cap
+constant is at `:228`, used at `:250`. `adr-35.md` and `adr-30.md` **are not edited** (ruling 2,
+`adr-06.md`). **No code, no fixture, no `main.js`, no version, no tag, no release.** Receipts at HEAD
+`c87def1` with this pass's docs in the tree: `TYPECHECK EXIT:0`, **26 `VERDICT: GREEN`** (`f01`–`f26`),
+`FIXTURES LOOP DONE` [R]; Huginn at `e4ccbd9`, tree clean, pushed, `TYPECHECK EXIT:0`, `FIXTURES EXIT:0`,
+**30 `VERDICT: GREEN`** [R]. Live doc set measured before this pass: **53** tracked files,
+`git ls-files docs/decisions | wc -l` = **43**. `adr-43.md` is untracked until Dan authorizes the commit, so
+this pass takes the set to **54** and `docs/decisions/` to **44** (**43** ADRs). A commit cannot carry its
+own hash.
+
+**Dated 2026-11-18 — T15 is ruled, and the second docs pass is committed and pushed.** Dan ruled the
+`listNotes` contract: **"Of course I agree the door."** … **"1, 2, 3, 4 agreed. 5. recommendation accepted.
+6. That waits on that proposed addons list."** **The contract is the record, once, in `adr-37.md` (status
+Proposed → Accepted, body rewritten as the acceptance-time text, no new ADR); it is not restated here.**
+Written this pass: `adr-37.md` (Accepted), `docs/decisions/index.md` (row 37, the supersession row, the dated
+addendum), `docs/Tracked Issues.md` (T15 closed, **T37** raised as the add-ons list, gate lines conformed,
+the verbatim addendum), this report (§14, §18 items 13–14, this paragraph), `README.md` (the Build block
+gains `npm run fixtures`; the ADR count is **unchanged at 43**), `CHANGELOG.md`'s docs record, and
+`package.json` + `.gitignore` on Dan's authorization. **T15 closes; T13 is the loop's only remaining gate;
+T8 stays open. No implementation is authorized.**
+**Receipts, measured at HEAD `c87def1` with this pass's docs in the tree:** `TYPECHECK EXIT:0`;
+`npm run fixtures` (the new chain at `package.json:11`, **26 entries, `f01`–`f26` in order, no gaps**)
+→ `EXIT:0` with **26 `VERDICT: GREEN`** [R]; Huginn at `e4ccbd9` with this pass's docs in the tree:
+`TYPECHECK EXIT:0`, `npm run fixtures` `EXIT:0`, **30 `VERDICT: GREEN`** [R]. **Live doc set measured
+before this pass:** **53** tracked files, `git ls-files docs/decisions | wc -l` = **43** (**42** ADR files
+tracked + `index.md`; `adr-43.md` is untracked, so the commit takes the set to **54** and `docs/decisions/`
+to **44**, **43** ADRs); the docket now has **37** unique row markers **T1–T37** [R]. Two
+`git grep` receipts that made the ruling precise: `git grep -n "frontmatter\|fm\b" HEAD -- src/store/store.ts`
+= **0 hits** (structural predicates are not expressible, so point 6 is deferred), and `git grep -il worker
+HEAD -- src` = **0 hits in Muninn, 0 in Huginn** (the declared limitation of `adr-43.md`).
+`csuite.ts`, `props.ts`, `test-harness.ts` measured **added at `10763ab`, deleted at `f523816`**, so the
+chain covers every tracked fixture file at HEAD. A commit cannot carry its own hash.

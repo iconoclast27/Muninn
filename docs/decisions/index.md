@@ -43,12 +43,13 @@ deviation** (invariant stands, as-built contradicts it), **Partly superseded**.
 | 34 | The plugin boundary — Plugin 2 consumes Plugin 1's frozen API, never the vault | Accepted, binding on both | 2026-11-03, unified definition 11-03 | Plugin 1 does not depend on Plugin 2; Huginn's vault enumeration is forbidden |
 | 35 | Compute threading — a blocked main thread kneecaps model tool calls | Accepted **with named as-built deviation** | 10-24/11-01 | Declared v1 invariant; as-built has no workers, and the semantic scan is main-thread by design |
 | 36 | The API freeze — five doors, dark-safe, fixture-guarded | Accepted, in force | 2026-11-06, `be3a1b3` | "Any deviation requires a ruling, not an implementation decision"; F24 polices it |
-| 37 | `listNotes` — the sixth door | **Proposed — ruling owed** | drafted 2026-11-16 | Contract text prepared for the ruling; nothing implemented |
+| 37 | `listNotes` — the sixth door | **Accepted** (implementation owed) | Dan 2026-11-18 — **"1, 2, 3, 4 agreed. 5. recommendation accepted. 6. That waits on that proposed addons list."** | The contract of record is `adr-37.md` (not restated here): six filter fields, one per lane, and the answer says which kind of answer it gives — a **set** or a **ranking** |
 | 38 | The Plugin 2 corpus in Muninn is retained as a **named oracle** | Accepted | Dan 2026-11-17 | 15 tracked files, no production path reaches them, f25/f26 are the only consumers; the corpus is Muninn's referee for the interface `listNotes` must preserve |
 | 39 | The three empty `src/` directories in Muninn are removed | Accepted | Dan 2026-11-17 | Git cannot track empty dirs, so the act leaves no commit — this ADR is the record; `.qwen/tmp` is out of scope (T36) |
 | 40 | Working documents live in the repo; nothing is kept twice for provenance | Accepted | Dan 2026-11-17 | `docs/Tracked Issues.md` is canonical for both projects; `/tmp` is for the length of one task; stating a fact twice is a drift opportunity |
 | 41 | Model roster closures bind the coding/production side, not the user side | Accepted | Dan 2026-11-17 | Roster closures are staffing judgements; they do not prohibit a small model on the user side, and `qwen3.5:4b` stays as Huginn's chat default (T33 closed) |
 | 42 | Root placement for the four root documents; living references in `docs/` | Accepted | Dan 2026-11-17 | `README.md`, `CHANGELOG.md`, `SECURITY.md`, `CONTRIBUTING.md` at root in both repos; ADRs, Design Report, testing contract, protocol docs, stubs in `docs/` (T17/T18 closed) |
+| 43 | Compute threading — the declared limitation is taken | Accepted | Dan 2026-11-18, **"Declared limitation, we can revisit if the problem bites."** | No worker, no scan restructuring; ADR-35's invariant stands for any new long-compute path; T4 closes, T8 stays open |
 
 ## Supersession map
 
@@ -63,7 +64,7 @@ deviation** (invariant stands, as-built contradicts it), **Partly superseded**.
 | Mobile linear-scan fallback (11-01 text) | ADR-14, ADR-19, ADR-30 | As-built serves FTS5 via WASM + brute-force kNN on both devices |
 | "Embeddings future / not implemented" | ADR-30 | Semantic lane shipped |
 | Per-row `cp` partition marker | ADR-27 | `chunker_epoch` sole authority |
-| Frozen five-door surface (2026-11-06) | ADR-37 **if accepted** | Becomes six doors; ruling owed, no implementation done |
+| Frozen five-door surface (2026-11-06) | ADR-37, **accepted 2026-11-18** | Becomes six doors; contract ruled, **implementation owed** (ADR-10 order: contract → red f27 → implementation → fakes → release) |
 
 ## Cross-project acknowledgements (Muninn owns, Huginn consumes)
 
@@ -109,3 +110,27 @@ conformed to the scope, closing **T33**. **ADR-42** — **"T17/18 -- agreed, roo
 prejudicing future testing". **T24/T25** close: the executor completed `versions.json` on Dan's request
 (Muninn 13 → 16 entries, Huginn 18 → 20), with `minAppVersion` measured from each tag's own `manifest.json`.
 No ADR body is edited (ruling 2, `adr-06.md`), no version, tag, or release is touched.
+
+## Addendum (2026-11-18) — ADR-43, and **T4** closed
+
+Dan ruled compute threading, verbatim: **"Declared limitation, we can revisit if the problem bites."** The
+ruling is `adr-43.md`; its details are not restated here. **T4 closes; T8 (ANN for >10k chunks) stays open.**
+No ADR body is edited (ruling 2, `adr-06.md`), no version, tag, release, code, or fixture is touched.
+
+## Addendum (2026-11-18, second pass) — ADR-37 accepted, **T15** closed
+
+Dan ruled the `listNotes` contract, verbatim: **"Of course I agree the door."** … **"1, 2, 3, 4 agreed.
+5. recommendation accepted. 6. That waits on that proposed addons list."** **The contract is Muninn
+`adr-37.md` — not restated here.** `adr-37.md`'s status moves from **Proposed** to **Accepted**, and its
+body is rewritten as the acceptance-time text — the ruling *accepts the proposed contract with amendments*,
+so **no new ADR is created** (ADR-6 governs changed decisions, and the contract was never accepted before).
+**T15 closes; T13 remains the loop's only gate.** Point 6 becomes docket row **T37** (the proposed add-ons
+list: Dataview integration, structural/frontmatter predicates — deferred, to be looked at much later).
+**No implementation is authorized**: no `api.ts` member, no `f27`, no mirror.
+
+Two non-ADR acts on Dan's authorization the same day: `package.json` gains the `fixtures` chain
+(`f01`–`f26`, appended in order, no gaps), so `npm run fixtures` is the canonical run-all in both repos
+(Huginn's chain at `package.json:11` is the precedent Muninn mirrors); and `.gitignore` gains the
+`AGENTS.md` / `docs/AGENTS/` paths in both repos, so the untracked agent files no longer sit in
+`git status --porcelain`. Commit and push for this pass are Dan's authorized act, batched as **one commit
+per repo**.

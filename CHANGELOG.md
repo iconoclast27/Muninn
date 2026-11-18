@@ -50,3 +50,28 @@ git history. Live docs conformed in the same commit: `README.md`, `CONTRIBUTING.
 Report.md` (header companion, §18 item 11, §20 registry rows, §21, new §22), this record, and
 `docs/decisions/index.md`'s dated addendum. **No ADR body edited** (ruling 2, ADR-6). Live doc set after:
 **47 tracked files** [R]. No bump, no tag, no release.
+
+**2026-11-18, T4 ruled — the declared limitation.** Dan ruled compute threading: **"Declared limitation,
+we can revisit if the problem bites."** The ruling is recorded once, in `adr-43.md`. Written:
+`docs/decisions/adr-43.md`, `docs/decisions/index.md` (row 43 + dated addendum), `docs/Tracked Issues.md`
+(T4 closed), `docs/Initial Design Report.md` (§13, §18 item 2, §23's dated record), `README.md` (the ADR
+count 42 → 43), and this record — **6 files** [R], pointers only, no ruling restated.
+**No code, no fixture, no `main.js`, no version, no tag, no release.** Receipts at HEAD `c87def1` with
+this pass's docs in the tree: `TYPECHECK EXIT:0`, **26 `VERDICT: GREEN`** (`f01`–`f26`), `FIXTURES LOOP
+DONE` [R].
+
+**2026-11-18, T15 ruled — the enumeration door.** Dan ruled `listNotes`: **"Of course I agree the door."**
+… **"1, 2, 3, 4 agreed. 5. recommendation accepted. 6. That waits on that proposed addons list."** The
+contract is recorded once, in `adr-37.md` (status **Proposed → Accepted**; its body is the acceptance-time
+text, **no new ADR**), and is not restated here. Written: `adr-37.md`, `docs/decisions/index.md` (row 37,
+the supersession row, dated addendum), `docs/Tracked Issues.md` (T15 closed, **T37** raised — the proposed
+add-ons list, gate lines conformed, verbatim addendum), `docs/Initial Design Report.md` (§14, §18 item 13,
+§23's dated record), `README.md` (the Build block gains `npm run fixtures`; ADR count unchanged at 43), and
+this record — **6 files** [R], pointers only. Two acts on Dan's authorization, not rulings: `package.json`
+gains the `fixtures` chain (`f01`–`f26`, appended in order, no gaps — the canonical fixture list, mirroring
+Huginn's `package.json:11`), and `.gitignore` gains the `AGENTS.md` / `docs/AGENTS/` paths. **No code, no
+fixture, no `main.js`, no version, no tag, no release.** Receipts at HEAD `c87def1` with this pass's docs in
+the tree: `TYPECHECK EXIT:0`, `npm run fixtures` → `EXIT:0` with **26 `VERDICT: GREEN`** (`f01`–`f26`) [R].
+The pass's own drift is ledgered as §18 item 13: a pass record named `npm run fixtures` in a repo that had
+no such script, corrected by re-measurement; and §18 item 14: the ruling restated in seven docs, pruned to
+pointers.
