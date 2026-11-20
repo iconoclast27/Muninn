@@ -62,12 +62,39 @@ export interface ReindexResult {
     durationMs: number;
 }
 
+// listNotes — the sixth door (adr-37.md, Accepted 2026-11-18).
+export interface ListNotesFilter {
+    folder?: string;    // vault-relative path prefix (folder boundary, not substring)
+    filename?: string;  // basename substring
+    tag?: string;       // exact vocabulary tag, no prefix match
+    lexical?: string;   // body words → FTS5 MATCH
+    scan?: string;      // body substring → LIKE
+    like?: string;      // semantic → embedded query + capped brute-force kNN
+    limit?: number;     // transport cap: rows handed back, optional, per recipe
+    offset?: number;    // paging cursor over the same ORDER BY
+}
+
+export interface NotesRow {
+    path: string;
+    filename: string;   // basename, derived from path, never empty
+    header: string;     // heading chain ('' when there is none)
+    mtime: number;
+    tags: string[];
+}
+
+export interface ListNotesResult {
+    notes: NotesRow[];
+    total?: number; // set size counted before limit/offset — absent for the semantic lane
+    mode: 'path' | 'tag' | 'bm25' | 'scan' | 'semantic';
+}
+
 export interface MuninnApi {
     searchText(query: string): TextSearchResult | null;
     searchSemantic(text: string): Promise<SemanticSearchResult | null>;
     relatedChunks(path: string, k: number): { neighbors: ChunkRef[] } | null;
     tagVocabulary(): { tags: TagInfo[] } | null;
     forceReindex(onProgress?: (p: ReindexProgress) => void): Promise<ReindexResult | null>;
+    listNotes(filter: ListNotesFilter): Promise<ListNotesResult | null>;
 }
 
 // ---------------------------------------------------------------------------
@@ -188,6 +215,147 @@ export function createMuninnApi(
             return { tags: store.tagVocabulary() };
         },
 
+        // The sixth door (adr-37.md). Set lanes disclose total (the set size
+        // counted before limit/offset) and share one stable ORDER BY path ASC;
+        // the like lane returns a ranking — no total, limit is k. Composed from
+        // store doors: files for path/mtime, chunks.title (ord = 0) for the
+        // header, the chunks.vh -> tags.vh join for tags. Zero-chunk notes
+        // appear (watermarks record every walked file).
+        async listNotes(filter: ListNotesFilter): Promise<ListNotesResult | null> {
+            const folder = filter.folder;
+            const filename = filter.filename;
+            const tag = filter.tag;
+            const lexical = filter.lexical;
+            const scan = filter.scan;
+            const like = filter.like;
+            const limit = filter.limit;
+            const offset = filter.offset ?? 0;
+
+            if (folder !== undefined && folder.length === 0) {
+                return fail('listNotes: empty folder selector');
+            }
+            if (filename !== undefined && filename.length === 0) {
+                return fail('listNotes: empty filename selector');
+            }
+            if (tag !== undefined && tag.length === 0) {
+                return fail('listNotes: empty tag selector');
+            }
+            if (lexical !== undefined && lexical.length === 0) {
+                return fail('listNotes: empty lexical selector');
+            }
+            if (scan !== undefined && scan.length === 0) {
+                return fail('listNotes: empty scan selector');
+            }
+            if (like !== undefined && like.trim().length === 0) {
+                return fail('listNotes: empty like selector');
+            }
+            if (limit !== undefined && (!Number.isInteger(limit) || limit <= 0)) {
+                return fail('listNotes: limit must be a positive integer');
+            }
+            if (!Number.isInteger(offset) || offset < 0) {
+                return fail('listNotes: offset must be a non-negative integer');
+            }
+
+            const matchesPath = (path: string): boolean =>
+                (folder === undefined || path === folder || path.startsWith(folder + '/'))
+                && (filename === undefined || path.slice(path.lastIndexOf('/') + 1).includes(filename));
+
+            if (like === undefined) {
+                let mode: 'path' | 'tag' | 'bm25' | 'scan';
+                let matchedPaths: Set<string> | null = null;
+                let matchedHeaders: Map<string, string> | null = null;
+                if (lexical !== undefined) {
+                    mode = 'bm25';
+                    matchedHeaders = new Map<string, string>();
+                    for (const h of store.searchText(lexical)) {
+                        if (!matchedHeaders.has(h.path)) {
+                            matchedHeaders.set(h.path, h.title);
+                        }
+                    }
+                    matchedPaths = new Set(matchedHeaders.keys());
+                } else if (scan !== undefined) {
+                    mode = 'scan';
+                    matchedHeaders = new Map<string, string>();
+                    for (const h of store.searchScan(scan)) {
+                        if (!matchedHeaders.has(h.path)) {
+                            matchedHeaders.set(h.path, h.title);
+                        }
+                    }
+                    matchedPaths = new Set(matchedHeaders.keys());
+                } else if (tag !== undefined) {
+                    mode = 'tag';
+                    matchedPaths = notePathsForTag(store, tag);
+                } else {
+                    mode = 'path';
+                }
+                const rows = listNoteRows(store, null)
+                    .filter((row) => matchesPath(row.path) && (matchedPaths === null || matchedPaths.has(row.path)))
+                    .map((row): NotesRow => {
+                        if (matchedHeaders === null || !matchedHeaders.has(row.path)) {
+                            return row;
+                        }
+                        // Matched-chunk heading chain for the search lanes.
+                        return {
+                            path: row.path,
+                            filename: row.filename,
+                            header: matchedHeaders.get(row.path) as string,
+                            mtime: row.mtime,
+                            tags: row.tags,
+                        };
+                    });
+                const total = rows.length;
+                const end = limit === undefined ? total : offset + limit;
+                return {
+                    notes: rows.slice(offset, Math.max(offset, end)),
+                    total,
+                    mode,
+                };
+            }
+
+            // Ranking lane: the transport says "the closest k", never a set size.
+            if (embedClient === null) {
+                return fail('embedder unavailable');
+            }
+            const trimmed = like.trim();
+            // Keep the query vector in local scope only; transient query
+            // embeddings must never persist in the store (as searchSemantic).
+            const fetched = await embedClient.embed([{ vh: 'search_query:' + trimmed, text: trimmed }]);
+            if (fetched === null || fetched.length === 0) {
+                return fail('embedder failed on listNotes query');
+            }
+            const rec = fetched[0];
+            if (rec.vector.length === 0 || rec.dim <= 0) {
+                return fail('embedder returned invalid query vector');
+            }
+            const qv = new Float32Array(rec.vector.buffer, rec.vector.byteOffset, rec.dim);
+            const want = limit ?? 20;
+            const ranked = findSemanticNeighborsByVector(store, qv, want * 4);
+            const notes: NotesRow[] = [];
+            const seen = new Set<string>();
+            for (const h of ranked) {
+                if (seen.has(h.path) || !matchesPath(h.path)) {
+                    continue;
+                }
+                seen.add(h.path);
+                const base = listNoteRows(store, h.path);
+                if (base.length === 0) {
+                    continue;
+                }
+                const row = base[0];
+                notes.push({
+                    path: row.path,
+                    filename: row.filename,
+                    header: h.title,
+                    mtime: row.mtime,
+                    tags: row.tags,
+                });
+                if (notes.length >= want) {
+                    break;
+                }
+            }
+            return { notes, mode: 'semantic' };
+        },
+
         async forceReindex(onProgress?: (p: ReindexProgress) => void): Promise<ReindexResult | null> {
             return reindexer({ store, embedClient, onProgress });
         },
@@ -281,4 +449,60 @@ function cosineSimilarity(a: Float32Array, b: Float32Array): number {
     }
     const denom = Math.sqrt(aNorm) * Math.sqrt(bNorm);
     return denom === 0 ? 0 : dot / denom;
+}
+
+// ---------------------------------------------------------------------------
+// listNotes doors (adr-37.md): the enumeration composes store doors only —
+// files for path/mtime (every walked file, zero-chunk notes included),
+// chunks.title where ord = 0 for the header, the chunks.vh -> tags.vh join
+// for tags. ORDER BY path ASC is the single stable order (ADR-37). SQL goes
+// through the store's read-only query gateway, the pattern relatedChunks
+// already rides (ADR-28).
+// ---------------------------------------------------------------------------
+
+function parseTagsColumn(json: unknown): string[] {
+    try {
+        const parsed = JSON.parse(String(json));
+        if (Array.isArray(parsed) && parsed.every((t) => typeof t === 'string')) {
+            return parsed as unknown as string[];
+        }
+    } catch {
+        // fall through
+    }
+    return [];
+}
+
+function listNoteRows(store: Store, pathEq: string | null): NotesRow[] {
+    const sql = `
+        SELECT f.path, f.mtime,
+          COALESCE((SELECT c.title FROM chunks c WHERE c.path = f.path AND c.ord = 0), ''),
+          COALESCE((SELECT g.tags FROM chunks c JOIN tags g ON c.vh = g.vh WHERE c.path = f.path LIMIT 1), '[]')
+        FROM files f${pathEq === null ? '' : ' WHERE f.path = ?'}
+        ORDER BY f.path
+    `;
+    const rows = pathEq === null
+        ? store.query<[string, number, string, string]>(sql)
+        : store.query<[string, number, string, string]>(sql, pathEq);
+    return rows.map((r): NotesRow => {
+        const path = String(r[0]);
+        return {
+            path,
+            filename: path.slice(path.lastIndexOf('/') + 1),
+            header: String(r[2]),
+            mtime: Number(r[1]),
+            tags: parseTagsColumn(r[3]),
+        };
+    });
+}
+
+/** Paths of notes carrying an exact vocabulary tag (no prefix match). */
+function notePathsForTag(store: Store, tag: string): Set<string> {
+    const rows = store.query<[string]>(
+        `SELECT DISTINCT c.path
+         FROM chunks c JOIN tags g ON c.vh = g.vh
+         CROSS JOIN json_each(g.tags)
+         WHERE json_each.value = ?`,
+        tag,
+    );
+    return new Set(rows.map((r) => String(r[0])));
 }

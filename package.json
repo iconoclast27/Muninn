@@ -8,7 +8,7 @@
     "dev": "node esbuild.config.mjs",
     "build": "node esbuild.config.mjs production",
     "typecheck": "tsc --noEmit",
-    "fixtures": "tsx src/fixtures/f01.ts && tsx src/fixtures/f02.ts && tsx src/fixtures/f03.ts && tsx src/fixtures/f04.ts && tsx src/fixtures/f05.ts && tsx src/fixtures/f06.ts && tsx src/fixtures/f07.ts && tsx src/fixtures/f08.ts && tsx src/fixtures/f09.ts && tsx src/fixtures/f10.ts && tsx src/fixtures/f11.ts && tsx src/fixtures/f12.ts && tsx src/fixtures/f13.ts && tsx src/fixtures/f14.ts && tsx src/fixtures/f15.ts && tsx src/fixtures/f16.ts && tsx src/fixtures/f17.ts && tsx src/fixtures/f18.ts && tsx src/fixtures/f19.ts && tsx src/fixtures/f20.ts && tsx src/fixtures/f21.ts && tsx src/fixtures/f22.ts && tsx src/fixtures/f23.ts && tsx src/fixtures/f24.ts && tsx src/fixtures/f25.ts && tsx src/fixtures/f26.ts"
+    "fixtures": "tsx src/fixtures/f01.ts && tsx src/fixtures/f02.ts && tsx src/fixtures/f03.ts && tsx src/fixtures/f04.ts && tsx src/fixtures/f05.ts && tsx src/fixtures/f06.ts && tsx src/fixtures/f07.ts && tsx src/fixtures/f08.ts && tsx src/fixtures/f09.ts && tsx src/fixtures/f10.ts && tsx src/fixtures/f11.ts && tsx src/fixtures/f12.ts && tsx src/fixtures/f13.ts && tsx src/fixtures/f14.ts && tsx src/fixtures/f15.ts && tsx src/fixtures/f16.ts && tsx src/fixtures/f17.ts && tsx src/fixtures/f18.ts && tsx src/fixtures/f19.ts && tsx src/fixtures/f20.ts && tsx src/fixtures/f21.ts && tsx src/fixtures/f22.ts && tsx src/fixtures/f23.ts && tsx src/fixtures/f24.ts && tsx src/fixtures/f25.ts && tsx src/fixtures/f26.ts && tsx src/fixtures/f27.ts"
   },
   "devDependencies": {
     "@types/node": "latest",

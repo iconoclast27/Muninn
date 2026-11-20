@@ -4,7 +4,7 @@
 //
 // CONTRACT TEXT (API surface freeze):
 //   PASS requires:
-//     P1  MuninnApi exposes exactly the five frozen methods.
+//     P1  MuninnApi exposes exactly the six frozen methods.
 //     P2  Each method accepts the documented parameter types.
 //     P3  Each frozen return shape contains exactly the documented fields.
 //     P4  The Hit shape is frozen and carries path, ord, bs, be, title, text.
@@ -15,12 +15,14 @@
 //     P9  forceReindex accepts an optional progress callback and returns a
 //         ReindexResult.
 //    P10  All dark-safe failures return null (verified for empty/invalid input).
+//    P11  listNotes returns { notes, total?, mode } with rows path/filename/
+//         header/mtime/tags — the filename/header split, no 'title' field.
 //
 // RUNNER: plain Node via tsx.
 //   npx tsx src/fixtures/f24.ts
 // =============================================================================
 
-import { createMuninnApi, type MuninnApi, type Hit, type TextSearchResult, type SemanticSearchResult, type ChunkRef, type TagInfo, type ReindexResult, type ReindexProgress } from '../api.ts';
+import { createMuninnApi, type MuninnApi, type Hit, type TextSearchResult, type SemanticSearchResult, type ChunkRef, type TagInfo, type ReindexResult, type ReindexProgress, type ListNotesResult, type NotesRow } from '../api.ts';
 import type { Store } from '../store/store.ts';
 
 let failures = 0;
@@ -67,6 +69,15 @@ function fakeApi(opts: {
         tagVocabulary(): { tags: TagInfo[] } | null {
             return opts.tagsResult ?? null;
         },
+        // Grown for the widened interface (ADR-37): the sixth door, with the
+        // filename/header split row shape (P11 checks it below).
+        async listNotes(): Promise<ListNotesResult | null> {
+            return {
+                notes: [{ path: 'notes/a.md', filename: 'a.md', header: 'A', mtime: 1, tags: ['ml'] } as NotesRow],
+                total: 1,
+                mode: 'path',
+            };
+        },
         async forceReindex(onProgress?: (p: ReindexProgress) => void): Promise<ReindexResult | null> {
             if (onProgress) {
                 onProgress({ phase: 'walk', done: 1, total: 1 });
@@ -79,16 +90,17 @@ function fakeApi(opts: {
 async function main(): Promise<void> {
     console.log('[F24] frozen Plugin 1 public API contract');
 
-    // P1 — exact five methods
+    // P1 — exact six methods (ADR-37: listNotes is the sixth door)
     const api = fakeApi({});
     const keys = Object.keys(api).sort();
-    check('P1 exposes exactly five methods',
-        keys.length === 5 &&
+    check('P1 exposes exactly six methods',
+        keys.length === 6 &&
         keys.includes('searchText') &&
         keys.includes('searchSemantic') &&
         keys.includes('relatedChunks') &&
         keys.includes('tagVocabulary') &&
-        keys.includes('forceReindex'),
+        keys.includes('forceReindex') &&
+        keys.includes('listNotes'),
         JSON.stringify(keys));
 
     // P2/P4/P5
@@ -152,6 +164,21 @@ async function main(): Promise<void> {
     check('P10 empty semantic query returns null', await realApi.searchSemantic('') === null);
     check('P10 empty relatedChunks path returns null', realApi.relatedChunks('', 3) === null);
     check('P10 invalid k returns null', realApi.relatedChunks('notes/a.md', 0) === null);
+
+    // P11 — listNotes, the sixth door: the answer shape and the filename/header split
+    const ln = await fakeApi({}).listNotes({ folder: 'notes' });
+    const lnRow = ln === null ? undefined : ln.notes[0];
+    check('P11 listNotes answer carries notes/total/mode',
+        ln !== null && Array.isArray(ln.notes) && typeof ln.total === 'number' &&
+        (ln.mode === 'path' || ln.mode === 'tag' || ln.mode === 'bm25' || ln.mode === 'scan' || ln.mode === 'semantic'));
+    check('P11 listNotes row is path/filename/header/mtime/tags, no title',
+        lnRow !== undefined
+            && typeof lnRow.path === 'string'
+            && typeof lnRow.filename === 'string' && lnRow.filename.length > 0
+            && typeof lnRow.header === 'string'
+            && typeof lnRow.mtime === 'number'
+            && Array.isArray(lnRow.tags) && lnRow.tags.every((t) => typeof t === 'string')
+            && !('title' in lnRow));
 
     console.log(failures === 0
         ? '[F24] VERDICT: GREEN'

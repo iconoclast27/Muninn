@@ -19,7 +19,7 @@
 
 import { createSearchHost, type FileOpener } from '../ui/search-controller.ts';
 import type { TAbstractFile } from 'obsidian';
-import type { MuninnApi, Hit, TextSearchResult, SemanticSearchResult } from '../api.ts';
+import type { MuninnApi, Hit, TextSearchResult, SemanticSearchResult, ListNotesResult } from '../api.ts';
 
 let failures = 0;
 function check(name: string, cond: boolean, detail?: string): void {
@@ -53,6 +53,11 @@ function fakeApi(opts: {
         },
         tagVocabulary(): { tags: { tag: string; files: number; chunks: number }[] } | null {
             return { tags: [] };
+        },
+        // Grown for the widened interface (Muninn f27, the sixth door): the
+        // search-host mapping must still compile against six doors.
+        async listNotes(): Promise<ListNotesResult | null> {
+            return { notes: [], total: 0, mode: 'path' };
         },
         async forceReindex(): Promise<{ files: number; chunks: number; embedded: number; durationMs: number } | null> {
             return { files: 0, chunks: 0, embedded: 0, durationMs: 0 };
