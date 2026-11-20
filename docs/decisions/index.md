@@ -134,3 +134,16 @@ Two non-ADR acts on Dan's authorization the same day: `package.json` gains the `
 `AGENTS.md` / `docs/AGENTS/` paths in both repos, so the untracked agent files no longer sit in
 `git status --porcelain`. Commit and push for this pass are Dan's authorized act, batched as **one commit
 per repo**.
+
+## Addendum (2026-11-20) — **T13 ruled and closed**: independent fixture chains, the M-/H- designation convention
+
+Dan ruled (2026-11-20), closing **T13**: the two projects' fixture numbering has always been
+**independent** (Muninn `f01`–`f26`, Huginn `f01`–`f30`, each its own `package.json` chain [R]); the
+"collision" recorded by merged documentation was a **misunderstanding by the agents involved**, not a
+fact on disk. **Standing convention, ruled:** every fixture number cited in prose, docs, or ADR text
+carries its project prefix — **`M-fNN`** (Muninn) or **`H-fNN`** (Huginn); bare numbers are conformed as
+their citing documents are touched, history stays history. **Release slotting, confirmed:** the Memory
+Feedback Loop's ranking fixtures follow the op loop's H-f31–H-f36 and start at **H-f37**. The docket row
+and the 2026-11-20 addendum in `docs/Tracked Issues.md` are the record; the op loop's gate list is empty,
+and implementation of the `adr-37.md` door awaits Dan's explicit authorization. No ADR body is edited
+(ruling 2, `adr-06.md`), no code, fixture, version, tag, or release is touched.

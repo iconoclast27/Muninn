@@ -48,7 +48,7 @@ drift, so this docket does not copy facts that the repos already state: it point
 | **T10** | Stale `LLM client returned null` entry in the vault's `Agents/Huginn/MEMORY/corrections.md` (keyed by `tag-assignment`) | Pre-release manual step | **CLOSED — Dan did it 2026-11-17, and deleted all memory files: "T10 done, I deleted all memories to avoid prejudicing future testing"** | Discharged and extended: `corrections.md`, `user.md`, `chat-summaries.md` were removed from the vault, so the memory scenarios start from a clean slate. Measured in `docs/TESTING1.md`: the memory assertions are **gains** (`:90` "is appended", `:184` "gains **no** entry", `:208` "contains exactly two … entries", `:229` "contains a new … entry", `:333` "whether `MEMORY/` was created automatically"), so no scenario precondition is broken by the deletion — the files are created by the plugin under test. |
 | **T11** | Verbose coverage for the four channel-less recipes (`tag-assignment`, `title-suggestion`, `link-suggestion`, `related-notes`) | Pending Dan ruling | OPEN | Ruling owed. |
 | **T12** | Bounded tag-assignment retry | Slotted for the next release | OPEN | Ruling + fixture. |
-| **T13** | Memory Feedback Loop release | Design + Implementation Guide exist; the guide plans fixtures **F26–F30** against the chain **already taken** by the shipped fixtures (`f26..f30`, `package.json`'s `fixtures` script [R]), and its prose calls its gates "F26", "F28", "F29" where those are Muninn's fixture numbers | **OPEN — ruling + release slot owed, and a numbering ruling owed** | The Memory Loop's ranking fixtures must be numbered **f37+** in Huginn (the chain runs `f01..f30`; the next number is `f31`, reserved for the op loop, and Muninn's next is `f27`). Fixture numbers are not an implementation decision. The guide's F-numbers must be conformed to the real numbers, in the guide, at release slotting. |
+| **T13** | Memory Feedback Loop release | Design + Implementation Guide exist; the guide drafted fixture numbers **F26–F30** which were **Huginn-sequence draft numbers, not a collision** — the perceived collision was a documentation-convention failure: merged documentation treated the two projects' **independent** chains (Muninn `f01..f26`, Huginn `f01..f30`, each its own `package.json` `fixtures` script [R]) as one shared sequence | **CLOSED — ruled 2026-11-20 by Dan, verbatim in intent: "we need to just reconcile the fact that the numbering is separate … include designation in the documentation for the source of the fixture number being referenced"; release slotting confirmed the same day** | **Standing convention (ruled): every fixture number cited in prose or docs carries its project prefix — `M-fNN` (Muninn) or `H-fNN` (Huginn).** Release slotting: the Memory Loop's ranking fixtures **follow the op loop's H-f31–H-f36 and start at H-f37**. The guide's draft "F26–F30" = H-f26–H-f30, all shipped; no live restatement uses bare numbers. History stays history; the guide itself remains deleted (recoverable at `0a066d7`). |
 | **T14** | Null-failure cause (chat) | Blocked on recurrence | OPEN — blocked | Recurrence receipt. |
 | **T15** | `listNotes` ruling (ADR-37, Proposed) | Contract text drafted 2026-11-16; Huginn enumeration forbidden; `criteria.tag` inexpressible today (`tagVocabulary()` returns counts, not paths) | **CLOSED — ruled 2026-11-18 by Dan ("I agree the door" … "1, 2, 3, 4 agreed. 5. recommendation accepted. 6. That waits on that proposed addons list"). Muninn `adr-37.md` — Accepted; contract of record, not restated here** | Rule taken. The contract and its implementation obligations are in `adr-37.md`; the implementation is a **separate authorization** (contract → red `f27` → `api.ts` → fakes → Muninn's release → Huginn's mirror → `list`). |
 | **T16** | Huginn has no release doc; Muninn's ADR-8 is the doctrine | Muninn `docs/Release Ritual -- Walkthrough.md` exists; Huginn `docs/` has none [R] | **CLOSED — pointer stub written 2026-11-17** (`Huginn/docs/Release Ritual -- Pointer.md`, Phase 4) | Discharged. Muninn's `docs/Release Ritual -- Walkthrough.md` remains the doctrine of record; the stub names the three differences (Huginn owns the bump commit, the tag, and the release). |
@@ -100,13 +100,15 @@ deletions without Dan's explicit authorization. Phase 4 and Phase 5 were authori
 ## Open rulings owed to Dan
 
 **T11** (verbose coverage for the four channel-less recipes), **T12** (bounded tag-assignment retry),
-**T13** (Memory Loop fixture numbering: the guide plans F26–F30 against the taken `f26–f30` chain, so
-**f37+** — a numbering ruling, and the guide's F-numbers must be conformed), **T14** (null-failure cause —
+**T14** (null-failure cause —
 blocked on recurrence), **T37** (the proposed add-ons list — Dataview integration, structural predicates —
 deferred by Dan's ruling of 2026-11-18, "much, much later"). **T4 closed 2026-11-18** (declared limitation,
-Muninn `adr-43.md`); **T15 closed 2026-11-18** (the door is ruled, Muninn `adr-37.md` **Accepted**), so the
-op loop's gate list is **T13** alone. **Implementation of the door is a separate authorization**: the ruled
-contract does not authorize code.
+Muninn `adr-43.md`); **T15 closed 2026-11-18** (the door is ruled, Muninn `adr-37.md` **Accepted**); **T13
+closed 2026-11-20** (chains independent; **M-/H- designation convention in force**: every cited fixture
+number carries its project prefix, `M-fNN`/`H-fNN`; Memory Loop ranking fixtures slot after the op loop's
+H-f31–H-f36, starting at **H-f37** — see the T13 row and the 2026-11-20 addendum). **The op loop's gate
+list is now empty — implementation of the door awaits Dan's authorization, and the ruled contract does
+not authorize code.**
 
 **The red plan is written (2026-11-17, Dan's request "Go ahead with the red plan document"):**
 `Huginn/docs/Op Loop Red Plan.md` — planning only. It re-measures every seam at HEAD `de228d0`
@@ -224,3 +226,25 @@ loop finishing with exit 0**, not literal stdout — the loop's literal output i
 lines. Records now name what is reproducible: `EXIT:0` + `26 VERDICT: GREEN` (Muninn), `EXIT:0` +
 **30 `VERDICT: GREEN`** (Huginn). Commit and push for this pass are Dan's authorized act, batched as **one
 commit per repo**.
+
+## Addendum, 2026-11-20 — Dan's ruling on **T13**, verbatim in intent
+
+Dan ruled (2026-11-20), after identifying that his three earlier rulings on T13 had been given to a model
+that misrecorded them: the fixture-numbering difficulty was **a misunderstanding by the agents involved** —
+the two projects' fixture chains have always been **independent** (Muninn `f01..f26`, Huginn `f01..f30`,
+each its own `package.json` `fixtures` script [R]); merged documentation treated them as one shared
+sequence, manufacturing the "collision" recorded in this row and in Huginn `adr-30.md`'s ledger entry.
+Reconciliation: *"we need to just reconcile the fact that the numbering is separate. And include
+designation in the documentation for the source of the fixture number being referenced."*
+
+**Ruled and in force from this pass forward:**
+- **The designation convention:** every fixture number cited in prose, docs, or ADR text carries its
+  project prefix — **`M-fNN`** (Muninn) or **`H-fNN`** (Huginn). Bare `fNN` citations are conformed as
+  the documents citing them are touched; history stays history.
+- **Release slotting (confirmed):** the Memory Feedback Loop's ranking fixtures **follow the op loop's
+  H-f31–H-f36 and start at H-f37** — f37 as the first newly-authored Huginn number after the loop reserves
+  f31–f36.
+
+**T13 closes.** The op loop's gate list is empty: what remains before any code is Dan's **authorization to
+implement the door** (the ruled `adr-37.md` contract authorizes no code by itself). No code, fixture,
+version, tag, or release is touched by this act — docs-only conform, one commit per repo.
