@@ -270,3 +270,25 @@ occupied by the accepted red; Huginn's loop begins H-f31; Memory Loop at H-f37+ 
 **Test detritus removed same day:** the six S/M-Task briefs, the examiner sheet, `freemem.md` deleted; the
 calibration record persists in `docs/`. M-2's Huginn red (`check-task.ts`, design A, verified S1 RED at
 HEAD) is deleted per its reset clause — its assertions carry into H-f31. One commit per repo.
+
+## Addendum, 2026-11-20 (third) — the merged-release doctrine, the increment shape, T12 roped in
+
+Three rulings (2026-11-20):
+
+1. **Release doctrine amended.** Stages 3+4 are merged: one release pair — Muninn carrying the sixth door
+   (its M-f28 browse mode if it lands in time), Huginn carrying the mirror **and H-f31's executed slice**
+   (envelope parses all four ops; `list` and `respond` execute; `write` refused at the envelope with its
+   machine-readable string; `read` at Dan's discretion) — tested by one manual smoke whose observables are
+   **browse lists what the index holds** and **chat answers a list-shaped query through door→mirror→op**.
+   The remaining loop (serial writes, expiry, Stop-between-ops, the bound, the full Stage 11 driver, the
+   T20 scenario redefinitions, Design A's retry) still lands as the Stage 13 merged release with one
+   smoke. ADR-34's staging and the 11-15 no-piggybacking line are amended by reference; ADR bodies stay
+   immutable. Dan's attribution note: the original staging was accumulated agent pressure, not Dan's
+   choice; this amendment is Dan's choice.
+2. **Increment shape agreed** (Lumo's recommendation, Dan approved): as in (1) — envelope-complete,
+   `list`+`respond` execute, `write` refused, `read` optional at Dan's one-sentence discretion.
+3. **T12 roped in:** Design A's retry implementation lands **inside this release pair**, not deferred to
+   Stage 13: the retry loop lives in `harness.ts` (SCHEMA_RETRY_LIMIT = 1, feedback run-local, never
+   corrections, infra nulls consume nothing, Stop parity inside the retry window, terminal shape
+   unchanged), and its red asserts the ruled shape at Huginn HEAD before the loop exists. T11's "next
+   release" is clarified: T11 rides **Stage 13**, not this pair.
