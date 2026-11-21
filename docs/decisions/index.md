@@ -50,6 +50,7 @@ deviation** (invariant stands, as-built contradicts it), **Partly superseded**.
 | 41 | Model roster closures bind the coding/production side, not the user side | Accepted | Dan 2026-11-17 | Roster closures are staffing judgements; they do not prohibit a small model on the user side, and `qwen3.5:4b` stays as Huginn's chat default (T33 closed) |
 | 42 | Root placement for the four root documents; living references in `docs/` | Accepted | Dan 2026-11-17 | `README.md`, `CHANGELOG.md`, `SECURITY.md`, `CONTRIBUTING.md` at root in both repos; ADRs, Design Report, testing contract, protocol docs, stubs in `docs/` (T17/T18 closed) |
 | 43 | Compute threading — the declared limitation is taken | Accepted | Dan 2026-11-18, **"Declared limitation, we can revisit if the problem bites."** | No worker, no scan restructuring; ADR-35's invariant stands for any new long-compute path; T4 closes, T8 stays open |
+| 44 | T12 Design A — the bounded schema retry becomes ADR law | Accepted | Dan 2026-11-21, **"T41 C"** + **"Yes, on T41, supersede the earlier ruling."** | The retry shape becomes ADR law (origin: the docket's ruling-3 clause, 2026-11-20); the executor-attributed docket-only statement is superseded; ADRs track every design change |
 
 ## Supersession map
 
@@ -147,3 +148,18 @@ Feedback Loop's ranking fixtures follow the op loop's H-f31–H-f36 and start at
 and the 2026-11-20 addendum in `docs/Tracked Issues.md` are the record; the op loop's gate list is empty,
 and implementation of the `adr-37.md` door awaits Dan's explicit authorization. No ADR body is edited
 (ruling 2, `adr-06.md`), no code, fixture, version, tag, or release is touched.
+
+## Addendum (2026-11-21) — ADR-44 accepted, **T41** and **T42** closed, canon doctrine ruled
+
+Dan ruled T12's Design A, verbatim: **"T41 C"**, **"Yes, on T41, supersede the earlier ruling."** The
+ruling is `adr-44.md`; its details are not restated here. Dan ruled the canon doctrine, verbatim:
+**"canon information lives in the preserved design docs, the docket and ADRs. The design docs are the
+historical source, and ADRs should track every design change"**, and **"The docket should track all
+open issues."** Dan ruled the attribution correction, verbatim: **"The previous agent muddled up an
+audition document, which is not project-related but model-related"** — Dan's ruling of 2026-11-20 was
+the calibration record's *move to the vault*; the claim that design information lived in it was the
+agent's inference, not Dan's act, and it was false when written (**T41**, closed — Dan's ruling
+2026-11-21, option C). **T42** closed 2026-11-21 (Dan: **"T42 A"** — the dated annotation stands; the
+T38 option-(c) convention gets its first live instance; T38 itself stays open on the docket).
+Executor-recorded rulings in the docket's fourth addendum carry dated attribution corrections. No ADR
+body is edited (ruling 2, `adr-06.md`), no code, fixture, version, tag, or release is touched.
