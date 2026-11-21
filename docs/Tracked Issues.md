@@ -116,8 +116,9 @@ ACCEPTED 2026-11-20 (ruling 1): M-f27's red (Gyro-S) and the Stage 2 green (Code
 acts and committed — Stage 3 (Muninn's release act) awaits Dan's slotting.** **T12 also carries a ruled
 design (2026-11-20): Design A — the retry bound lives in the harness, one retry, feedback run-local
 (never corrections), infra nulls consume nothing; the ruled shape asserts at the op loop's H-f31; the
-design text is recorded verbatim in the vault record (`Agents/Huginn/CALIBRATION/S-M Task Calibration
-2026-11-20.md`), not the repo.**
+design text's home-of-record claim corrected 2026-11-21 (**[R]**: **T41** — the verbatim text is
+unrecoverable; the assertion source of record is this row's ruled shape plus the third addendum's
+ruling-3 clause; closure is Dan's ruling).**
 
 **The red plan is written (2026-11-17, Dan's request "Go ahead with the red plan document"):**
 `Huginn/docs/Op Loop Red Plan.md` — planning only. It re-measures every seam at HEAD `de228d0`
@@ -270,7 +271,8 @@ conflation) — the calibration record lives in **the vault** (`Agents/Huginn/CA
 model-audition records are agent memory, not project law, per Dan's ruling of 2026-11-20; **(6)** chain numbering stands: M-f27
 occupied by the accepted red; Huginn's loop begins H-f31; Memory Loop at H-f37+ (T13's ruling, unchanged).
 **Test detritus removed same day:** the six S/M-Task briefs, the examiner sheet, `freemem.md` deleted; the
-calibration record persists in `docs/`. M-2's Huginn red (`check-task.ts`, design A, verified S1 RED at
+calibration record persists in `docs/` *(dated claim, true at `1e07141`; superseded [R] — `9ab0c55`
+moved the record to the vault, home of record per ruling 5 above; **T42** open, closure is Dan's ruling)*. M-2's Huginn red (`check-task.ts`, design A, verified S1 RED at
 HEAD) is deleted per its reset clause — its assertions carry into H-f31. One commit per repo.
 
 ## Addendum, 2026-11-20 (third) — the merged-release doctrine, the increment shape, T12 roped in
@@ -294,3 +296,42 @@ Three rulings (2026-11-20):
    corrections, infra nulls consume nothing, Stop parity inside the retry window, terminal shape
    unchanged), and its red asserts the ruled shape at Huginn HEAD before the loop exists. T11's "next
    release" is clarified: T11 rides **Stage 13**, not this pair.
+
+## Addendum, 2026-11-21 — Dan's rulings, executor-recorded under Dan's authorization
+
+**Provenance:** Dan ruled these acts in conversation on 2026-11-21. Dan authorized the executor to
+"report them verbatim" (4); the wording below is the executor's record of Dan's acts as received in
+the executor session — rulings 1–3 and 5–6 answered gate questions posed by the executor, whose exact
+question text and Dan's reply wording are not preserved in the executor's transcript beyond the
+checkpoint. If any wording departs from Dan's words, Dan corrects by a new dated addendum; this one
+is not edited after recording.
+
+Seven rulings (2026-11-21):
+
+1. **Design A asserts inside H-f31** — no separate fixture; the retry legs ride the envelope fixture.
+2. **Option (b) for the final-failure correction** — the schema-error correction on retry exhaustion
+   stays; f13 stays green (its correction-channel invariant is not disturbed).
+3. **Machine-readable refusals agreed; the code shape is the executor's to propose** — stable prefixed
+   codes (`op-error:` / `dispatch-error:`), quoted offending value. Both sides of the vocabulary
+   (fixture assertion and implementation) are executor-authored under this delegation, disclosed in
+   `Huginn/src/fixtures/f31.ts`'s header for reviewer review.
+4. **Documentation-drift raised for the reviewer** — "raise the documentation drift … so that it can
+   be reviewed by the reviewer. Note the need for doc-correction": **T41** and **T42** entered the
+   docket (commit `f526892`), with executor choices against unspecified design detail enumerated for
+   review. "Design A appears legitimately only in the docket" — no ADR carries it. The gate question
+   (is the unrecoverable verbatim text a blocker?) answered: **proceed**.
+5. **The increment's discretion consumed:** `read` executes — the merged pair is list, read, respond
+   executing; `write` refused at the envelope. Third addendum ruling 2's row prose stays as written;
+   this ruling consumes its discretion clause.
+6. **The chat wiring is a separate job, assigned before the merged-pair smoke** — not inside H-f31;
+   Stage 13 stays Stage 13.
+7. **Authorizations:** push both repos (Muninn `eb484e0..f526892`, Huginn `ed7e517..245aeb3` — done,
+   origin receipts at both); implementation of the green pass as the T15 separate act (done at
+   Huginn `245aeb3`: typecheck 0, 31 GREEN [R]). The green pass's own commit and push remain gated
+   per the standing rule.
+
+**Doc corrections applied same day [R @ Muninn `f526892`]:** the T12 row's verbatim-copy claim
+re-pointed to the ruling-3 clause as assertion source (T41's finding); the second addendum's
+`docs/` persistence claim annotated as dated-and-superseded (T42's finding). T41/T42 stay **OPEN** —
+closure is Dan's ruling. Huginn's doc-conform pass (Harness.md table, Design Report aged counts and
+chain claims, Op Loop Red Plan status line) rides the same authorization.
