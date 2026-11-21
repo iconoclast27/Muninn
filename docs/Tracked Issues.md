@@ -344,3 +344,44 @@ re-pointed to the ruling-3 clause as assertion source (T41's finding); the secon
 `docs/` persistence claim annotated as dated-and-superseded (T42's finding). T41/T42 stay **OPEN** —
 closure is Dan's ruling. Huginn's doc-conform pass (Harness.md table, Design Report aged counts and
 chain claims, Op Loop Red Plan status line) rides the same authorization.
+
+## Addendum, 2026-11-21 (fifth) — Dan's rulings on T38, T39, the H-f31 executor choices, and the remaining open slots
+
+Recorded from Dan's chat ruling of 2026-11-21 ("T38, agreed; T39, agreed. Agreed 1-6 … And the
+remaining older rulings, agreed. And finally, agreed."):
+
+**T38 — ruled: option (a), the dated-receipt convention, standing law.** Every `[R]` citation
+written from this ruling forward carries its measurement anchor: `[R @ <repo> <hash>]` (dated where
+prose needs a time stamp). **Prospective-only**: old `[R]`s stay as written (history stays history);
+any row touched after this ruling gets anchored at the touch. Option (c) — annotate-stale — stays in
+force as the backstop remediation (first live instance: T42's closure). Option (b), periodic sweeps,
+is declined as the primary mechanism. T38 **CLOSED**.
+
+**T39 — ruled: disclosure-only, formalized.** A repo-wide grep claim in the docket either excludes
+`docs/Tracked Issues.md` (and names the exclusion set) or counts and discloses the self-hits. A grep
+claim with no named exclusion set is an unaudited claim. No structural move of measurement claims out
+of the docket (facts stated once — duplication is drift). T39 **CLOSED**.
+
+**The six H-f31 executor-delegated choices — ratified as executed** (Dan: "Agreed 1-6"; several were
+previously given in the executor's multiple-choice form):
+1. Refusal code vocabulary (`dispatch-error: malformed-dispatch | unknown-recipe '<x>' |
+   not-vault-path '<p>'`) — ratified; a `gate-error:` prefix is reserved for loop-stage refusals.
+2. Executor deps `{listNotes, readNote, deliver}` — ratified.
+3. `query→lexical` criteria mapping — ratified; the free-text-lane question waits for M-f28, not now.
+4. `SCHEMA_RETRY_LIMIT` export visibility — ratified (named assertable constant over magic numbers).
+5. Option (b) single final correction on retry exhaustion — ratified (per-attempt corrections would
+   corrupt the notebook's recurrence signal).
+6. Terminal-key pin — ratified (failure output is pinned like the frozen API surface).
+
+**Remaining older slots — ruled:**
+- **M-f28 (browse mode) goes into the pair** — red→green from `adr-37.md`'s shapes, before the smoke.
+- **Chat wiring (Stage 11 loop driver) is the next job**, then **H-f32–H-f36 earn their reds against
+  the live loop** — the Red Plan's Stage 6–10 → 11 order is revised by the envelope having landed
+  ahead of plan position; this ruling authorizes the inversion.
+- **T20 (scenario redefinition) slots after the loop driver exists, before the smoke.**
+- **T7/T8 stay open** as declared-limitation candidates; not bundled into the pair.
+- **T12's creative-tags concern is release-notes material, not harness work.**
+- **T9 unchanged** — the merged manual smoke remains the release gate.
+
+No ADR body is edited (ruling 2, `adr-06.md`); no code, fixture, version, tag, or release is touched
+by this act. The next acts in sequence: chat wiring (assigned job), M-f28, T20, then Dan's smoke.

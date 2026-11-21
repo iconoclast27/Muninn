@@ -163,3 +163,16 @@ agent's inference, not Dan's act, and it was false when written (**T41**, closed
 T38 option-(c) convention gets its first live instance; T38 itself stays open on the docket).
 Executor-recorded rulings in the docket's fourth addendum carry dated attribution corrections. No ADR
 body is edited (ruling 2, `adr-06.md`), no code, fixture, version, tag, or release is touched.
+
+## Addendum (2026-11-21) — **T38/T39 ruled closed**: receipt anchoring and grep disclosure as standing law; H-f31 executor choices ratified; sequence inversion ruled
+
+Dan ruled (2026-11-21, docket fifth addendum): **T38** — the dated-receipt convention is standing law
+(option (a): `[R @ <repo> <hash>]`, prospective-only; option (c) annotate-stale stays as backstop;
+T38 **closed**). **T39** — grep claims name their exclusion set or disclose self-hits (T39
+**closed**). The six H-f31 executor-delegated choices are **ratified as executed** (refusal code
+vocabulary with a reserved `gate-error:` prefix; executor deps; `query→lexical`; `SCHEMA_RETRY_LIMIT`
+export; option-(b) single final correction; terminal-key pin). The Red Plan's chat-wiring job is
+ruled **next**, with H-f32–H-f36 earning reds against the live loop — the Stage 6–10 → 11 inversion
+is ruled, acknowledging the envelope landed ahead of plan position; M-f28 goes into the pair; T20
+slots after the loop driver, before Dan's merged smoke (T9, unchanged). No ADR body is edited
+(ruling 2, `adr-06.md`); no code, fixture, version, tag, or release is touched.
