@@ -1,0 +1,644 @@
+// =============================================================================
+// Muninn — Intake / Reconcile Lane
+// src/intake/lane.ts
+//
+// Owns the vault-to-store pipeline: read files, compare watermarks,
+// re-chunk changed files, embed new vectors, and apply deletes/renames.
+// Designed to run inside Obsidian's event bus or a fake filesystem in tests.
+// All filesystem access is abstracted behind FileSource so fixtures can
+// drive it without Obsidian APIs.
+// =============================================================================
+
+import { chunkNote, CHUNKER_CP } from '../chunker/chunker.ts';
+import { DEFAULT_SETTINGS } from '../settings.ts';
+import { contentSha, renderEmbedInput, embedVh } from '../chunker/render.ts';
+import type {
+    Store,
+    ChunkRecord,
+    EmbeddingRecord,
+    TagRecord,
+    FileWatermark,
+} from '../store/store.ts';
+import type { EmbedClient } from '../api.ts';
+
+// ---------------------------------------------------------------------------
+// Shutdown signal
+// ---------------------------------------------------------------------------
+
+export class LaneShutdownError extends Error {
+    constructor() {
+        super('lane stopped during reindex');
+        this.name = 'LaneShutdownError';
+    }
+}
+
+// ---------------------------------------------------------------------------
+// T58 Stage B — the one epoch event (2026-11-26 implementation pass; the
+// docket row stays OPEN, closure is Dan's, design draft is the contract text)
+// ---------------------------------------------------------------------------
+
+// B3: chunks whose decoded text has at most this many NON-WHITESPACE bytes
+// get no embedding — a degenerate vector is noise in kNN space (the measured
+// degenerate class: 77 chunks ≤ 3 bytes on the smoke's store). The chunk
+// row itself stays, so the FTS text lane is untouched; the semantic join
+// needs an embeddings row, so a vectorless chunk simply never joins. The
+// floor is Dan's ruling 2026-11-26 (T58): 4 = that measured class plus
+// one byte of margin; the 32-byte draft proposal (which would also decline
+// the 104 template stubs) was NOT chosen — standing policy declines junk.
+const DEGENERATE_MAX_NONWS_BYTES = 4;
+
+// B4: batch width for the epoch pass only (8 is the standing lane width).
+// One re-embed is the cost of the bump; 8 × ~4k chunks is hundreds of
+// round-trips. 32 is a proposal — Ollama payload/memory limits are a
+// receipt, not assumed.
+const EPOCH_EMBED_BATCH = 32;
+const STANDING_EMBED_BATCH = 8;
+
+// ---------------------------------------------------------------------------
+// File source abstraction
+// ---------------------------------------------------------------------------
+
+export interface FileEntry {
+    path: string;
+    bytes: Uint8Array;
+    mtime: number;
+}
+
+export interface FileSource {
+    /** Enumerate all markdown file paths in the vault. */
+    listFiles(): Promise<string[]>;
+    /** Read a single file by path. Returns null if the file is gone. */
+    readFile(path: string): Promise<FileEntry | null>;
+}
+
+// ---------------------------------------------------------------------------
+// Reindex progress
+// ---------------------------------------------------------------------------
+
+export interface ReindexProgress {
+    phase: 'wipe' | 'walk' | 'embed';
+    done: number;
+    total: number;
+}
+
+export interface ReindexResult {
+    files: number;
+    chunks: number;
+    embedded: number;
+    durationMs: number;
+}
+
+// ---------------------------------------------------------------------------
+// Intake lane
+// ---------------------------------------------------------------------------
+
+export class IntakeLane {
+    private store: Store;
+    private source: FileSource;
+    private embedClient: EmbedClient | null;
+    private modelTag: string;
+    private epoch: number;
+    private chunkerCp: number;
+
+    private pending = new Map<string, PathState>();
+    private reindexing = false;
+    private stopped = false;
+    private drainFlight: Promise<void> | null = null;
+    private pathFlight = new Map<string, Promise<void>>();
+    private debounceMs: number;
+    private timers = new Map<string, ReturnType<typeof setTimeout>>();
+    // T58 B4 (2026-11-26): embed batch width for the NEXT ingest; forceReindex
+    // widens it for the epoch pass only. Standing touches keep 8.
+    private embedBatchWidth = STANDING_EMBED_BATCH;
+
+    constructor(opts: {
+        store: Store;
+        source: FileSource;
+        embedClient: EmbedClient | null;
+        modelTag: string;
+        epoch: number;
+        chunkerCp: number;
+        debounceMs?: number;
+    }) {
+        this.store = opts.store;
+        this.source = opts.source;
+        this.embedClient = opts.embedClient;
+        this.modelTag = opts.modelTag;
+        this.epoch = opts.epoch;
+        this.chunkerCp = opts.chunkerCp;
+        this.debounceMs = opts.debounceMs ?? 300;
+    }
+
+    // -----------------------------------------------------------------------
+    // Event-driven API
+    // -----------------------------------------------------------------------
+
+    /** Optional callback invoked whenever the lane mutates store state.
+     *  Used by the plugin entry point to debounce cache flushes. */
+    onMutation?: () => void;
+
+    onCreate(path: string): void {
+        // eslint-disable-next-line no-console
+        console.log('[Muninn] lane onCreate:', path);
+        this.debounceTouch(path);
+    }
+
+    onModify(path: string): void {
+        // eslint-disable-next-line no-console
+        console.log('[Muninn] lane onModify:', path);
+        this.debounceTouch(path);
+    }
+
+    onDelete(path: string): void {
+        // eslint-disable-next-line no-console
+        console.log('[Muninn] lane onDelete:', path);
+        this.cancelDebounce(path);
+        this.schedule(path, { kind: 'delete' });
+    }
+
+    onRename(oldPath: string, newPath: string): void {
+        // eslint-disable-next-line no-console
+        console.log('[Muninn] lane onRename:', oldPath, '->', newPath);
+        // Cancel any pending debounced touches on either side of the move
+        // so they do not race with the rename.
+        this.cancelDebounce(oldPath);
+        this.cancelDebounce(newPath);
+        // If the new path itself has pending operations, fold them so a
+        // delete-after-rename sequence resolves against the final path.
+        const destPending = this.pending.get(newPath);
+        if (destPending) {
+            // The logical outcome for oldPath now depends on whatever is
+            // queued for newPath. Delete dominates; touch is a no-op because
+            // the rename already moved the rows.
+            if (destPending.kind === 'delete') {
+                this.pending.delete(newPath);
+                this.pending.set(oldPath, { kind: 'delete' });
+                return;
+            }
+            // Any touch/destination rename becomes a rename of oldPath to the
+            // same newPath (idempotent).
+        }
+        this.schedule(oldPath, { kind: 'rename', newPath });
+    }
+
+    onRenamePrefix(fromFolder: string, toFolder: string): void {
+        // Folder renames move every child path. Obsidian typically emits
+        // per-child rename events too, but if it ever does not, the prefix
+        // rename keeps child paths from going stale until the next walk.
+        this.cancelDebounce(fromFolder);
+        this.schedule(fromFolder, { kind: 'renamePrefix', toFolder });
+    }
+
+    private debounceTouch(path: string): void {
+        if (this.stopped) return;
+        const existing = this.timers.get(path);
+        if (existing !== undefined) {
+            clearTimeout(existing);
+        }
+        const timer = setTimeout(() => {
+            this.timers.delete(path);
+            this.schedule(path, { kind: 'touch' });
+        }, this.debounceMs);
+        this.timers.set(path, timer);
+    }
+
+    private cancelDebounce(path: string): void {
+        const existing = this.timers.get(path);
+        if (existing !== undefined) {
+            clearTimeout(existing);
+            this.timers.delete(path);
+        }
+    }
+
+    private schedule(path: string, op: IntakeOp): void {
+        if (this.stopped) return;
+        // Fold the new event into the existing pending state for this path.
+        const existing = this.pending.get(path);
+        if (existing) {
+            // eslint-disable-next-line no-console
+            console.log('[Muninn] lane schedule fold:', path, existing.kind, '+>', op.kind);
+            this.pending.set(path, foldState(existing, op));
+        } else {
+            // eslint-disable-next-line no-console
+            console.log('[Muninn] lane schedule:', path, op.kind, 'reindexing=', this.reindexing);
+            this.pending.set(path, op);
+        }
+        if (!this.reindexing) {
+            // Drain the buffer on the next microtask. Single-flight: if a
+            // drain is already running, this call chains behind it.
+            queueMicrotask(() => this.drain().catch((e: unknown) => {
+                // eslint-disable-next-line no-console
+                console.error('[Muninn] intake drain failed:', e);
+            }));
+        }
+    }
+
+    /** Drain buffered events idempotently. Called automatically or manually.
+     *  Only one drain runs at a time; concurrent callers wait on the same
+     *  in-flight promise (one pump ever).
+     *  Also flushes any debounced touch timers so callers who explicitly
+     *  wait for the lane do not have to sleep through the debounce window. */
+    drain(): Promise<void> {
+        if (this.stopped || this.reindexing) return Promise.resolve();
+        if (this.drainFlight !== null) return this.drainFlight;
+        this.flushDebouncedTouches();
+        this.drainFlight = this.drainLoop().finally(() => {
+            this.drainFlight = null;
+        });
+        return this.drainFlight;
+    }
+
+    private flushDebouncedTouches(): void {
+        if (this.timers.size === 0) return;
+        for (const [path, timer] of this.timers) {
+            clearTimeout(timer);
+            this.schedule(path, { kind: 'touch' });
+        }
+        this.timers.clear();
+    }
+
+    private async drainLoop(): Promise<void> {
+        while (this.pending.size > 0) {
+            const [path, op] = this.pending.entries().next().value as [string, IntakeOp];
+            this.pending.delete(path);
+            // Serialize all operations for a given path so a delete/rename that
+            // arrives while an earlier ingest is still in flight waits for the
+            // in-flight work to finish before applying. This closes the
+            // resurrection race described in Lumo H3.
+            const flight = this.pathFlight.get(path);
+            const next = (flight ?? Promise.resolve()).then(async () => {
+                try {
+                    await this.applyOp(path, op);
+                    this.onMutation?.();
+                } catch (e) {
+                    // eslint-disable-next-line no-console
+                    console.error(`[Muninn] intake error for ${path}:`, e);
+                }
+            });
+            this.pathFlight.set(path, next);
+            await next;
+            if (this.pathFlight.get(path) === next) {
+                this.pathFlight.delete(path);
+            }
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // Full reindex
+    // -----------------------------------------------------------------------
+
+    // T58 (2026-11-26), Dan's ruling: manual reindex = FULL re-embed. rebuild=true
+    // (the button leg) wipes the embeddings rows first, so the walk re-embeds
+    // every chunk: by construction it heals corrupt rows AND stale-model rows.
+    // rebuild=false (the startup leg) keeps the vh-keyed lazy cache — unchanged
+    // text keeps its vector, and a model change is caught by the EPOCH face
+    // below, not by this parameter.
+    async forceReindex(onProgress?: (p: ReindexProgress) => void, rebuild?: boolean): Promise<ReindexResult> {
+        const start = performance.now();
+        this.reindexing = true;
+        try {
+            this.checkStopped();
+
+            // Read all current paths.
+            const paths = await this.source.listFiles();
+            const currentPaths = new Set(paths);
+
+            // T58 Stage B (2026-11-26): an EPOCH PASS is either staleness fact:
+            // (a) the store's chunker_epoch disagrees with the compiled CHUNKER_CP
+            // (same fact ingestTouch consults, lane.ts:390 class of precedent —
+            // the cp 2→3 bump), OR (b) Dan's ruling 2026-11-26, the embedder face:
+            // the store's embedder_model_tag (already stamped on rows at main.ts:430
+            // and in meta at store.ts:196; today ZERO readers — measured) disagrees
+            // with modelTag(settings). Either disagreement = vectors on the store
+            // speak a dialect the current config would not produce: full re-chunk,
+            // vh-diff, embed deltas, the wider batch width and the orphan eviction
+            // ride ONLY that pass. This is what makes "a change of model that
+            // hasn't triggered one" impossible: the next walk after a model edit
+            // IS the epoch.
+            const storedCp = Number(this.store.getMeta('chunker_epoch') ?? String(CHUNKER_CP));
+            const storedTag = this.store.getMeta('embedder_model_tag') ?? `ollama/${DEFAULT_SETTINGS.ollamaModel}`;
+            const epochPass = this.chunkerCp !== storedCp || storedTag !== this.modelTag;
+            this.embedBatchWidth = epochPass ? EPOCH_EMBED_BATCH : STANDING_EMBED_BATCH;
+
+            // Wipe index state for anything no longer in the source.
+            // Embeddings stay as a lazy cache per spec §5.4.1 — UNLESS this is
+            // the manual FULL rebuild (Dan's ruling 2026-11-26: "manual reindex =
+            // full reindex, with embeddings": it rewrites the vector set from
+            // source, which is what heals corrupt rows and stale-model rows).
+            const stalePaths = this.store.query<[string]>('SELECT DISTINCT path FROM chunks')
+                .map((r) => r[0])
+                .filter((p) => !currentPaths.has(p));
+            if (rebuild) {
+                await this.store.transaction(async () => {
+                    this.checkStopped();
+                    const all = this.store.query<[string]>(
+                        'SELECT e.vh FROM embeddings e',
+                    );
+                    for (const [vh] of all) {
+                        this.store.deleteEmbeddingsForVh(String(vh));
+                    }
+                });
+            }
+            await this.store.transaction(async () => {
+                this.checkStopped();
+                for (const path of stalePaths) {
+                    this.store.deleteChunksForPath(path);
+                }
+                this.store.clearFiles();
+            });
+
+            let walked = 0;
+            let totalChunks = 0;
+            let totalEmbedded = 0;
+            if (onProgress) {
+                onProgress({ phase: 'wipe', done: 0, total: paths.length });
+            }
+            for (const path of paths) {
+                this.checkStopped();
+                const entry = await this.source.readFile(path);
+                if (entry === null) continue;
+                const { chunks, embedded } = await this.ingest(path, entry);
+                walked++;
+                totalChunks += chunks;
+                totalEmbedded += embedded;
+                if (onProgress) {
+                    onProgress({ phase: 'walk', done: walked, total: paths.length });
+                    onProgress({ phase: 'embed', done: walked, total: paths.length });
+                }
+            }
+            if (onProgress) {
+                onProgress({ phase: 'embed', done: paths.length, total: paths.length });
+            }
+            this.checkStopped();
+            if (epochPass) {
+                // T58 B4: orphan eviction, epoch pass only — embeddings rows
+                // whose vh no longer belongs to any chunk are invisible to
+                // the chunk-led join but they ride export/import (the prior
+                // bump left 605 such rows on the smoke's store). One cleanup
+                // per epoch event, not a standing scan.
+                const orphans = this.store.query<[string]>(
+                    'SELECT e.vh FROM embeddings e WHERE NOT EXISTS (SELECT 1 FROM chunks c WHERE c.vh = e.vh)',
+                );
+                for (const [vh] of orphans) {
+                    this.store.deleteEmbeddingsForVh(String(vh));
+                }
+                if (orphans.length > 0) {
+                    // eslint-disable-next-line no-console
+                    console.log('[Muninn] lane epoch pass evicted orphan embeddings:', orphans.length);
+                }
+            }
+            this.store.setMeta('chunker_epoch', String(this.chunkerCp));
+            // T58 B4 (2026-11-26), the embedder face of the same epoch machinery:
+            // the tag stamp becomes CONSUMED at both ends — the comparison above
+            // reads it, this line keeps it honest, so the store's own tag always
+            // names the model that produced its vectors.
+            this.store.setMeta('embedder_model_tag', this.modelTag);
+            return {
+                files: walked,
+                chunks: totalChunks,
+                embedded: totalEmbedded,
+                durationMs: Math.round(performance.now() - start),
+            };
+        } finally {
+            this.reindexing = false;
+            // Replay anything that arrived during reindex.
+            this.drain().catch((e: unknown) => {
+                // eslint-disable-next-line no-console
+                console.error('[Muninn] intake post-reindex drain failed:', e);
+            });
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // Per-path ingestion
+    // -----------------------------------------------------------------------
+
+    stop(): void {
+        this.stopped = true;
+        this.pending.clear();
+        for (const timer of this.timers.values()) {
+            clearTimeout(timer);
+        }
+        this.timers.clear();
+        // pathFlight entries are left to settle on their own; the promises
+        // will observe the stopped flag via checkStopped() inside ingest().
+    }
+
+    private checkStopped(): void {
+        if (this.stopped) {
+            throw new LaneShutdownError();
+        }
+    }
+
+    private async applyOp(path: string, op: PathState): Promise<void> {
+        // eslint-disable-next-line no-console
+        console.log('[Muninn] lane applyOp:', path, op.kind);
+        switch (op.kind) {
+            case 'touch':
+                await this.ingestTouch(path);
+                break;
+            case 'delete':
+                this.store.deleteChunksForPath(path);
+                break;
+            case 'rename':
+                try {
+                    this.store.renamePath(path, op.newPath);
+                } catch (e) {
+                    // If the destination already holds rows (constraint
+                    // violation), delete the stale source rows instead of
+                    // leaving the lane wedged. This is a recoverable race
+                    // between a rename and a prior delete.
+                    // eslint-disable-next-line no-console
+                    console.warn(`[Muninn] rename ${path} -> ${op.newPath} failed, falling back to delete source:`, e);
+                    this.store.deleteChunksForPath(path);
+                }
+                break;
+            case 'renamePrefix':
+                try {
+                    this.store.renamePrefix(path, op.toFolder);
+                } catch (e) {
+                    // eslint-disable-next-line no-console
+                    console.warn(`[Muninn] renamePrefix ${path} -> ${op.toFolder} failed:`, e);
+                }
+                break;
+        }
+    }
+
+    private async ingestTouch(path: string): Promise<void> {
+        const entry = await this.source.readFile(path);
+        // eslint-disable-next-line no-console
+        console.log('[Muninn] lane ingestTouch read:', path, entry ? `${entry.bytes.length} bytes` : 'null');
+        if (entry === null) {
+            this.store.deleteChunksForPath(path);
+            return;
+        }
+        const storedCp = Number(this.store.getMeta('chunker_epoch') ?? String(CHUNKER_CP));
+        const chunkerStale = this.chunkerCp !== storedCp;
+        const watermark = this.store.getFile(path);
+        const contentHash = contentSha(entry.bytes);
+        const unchanged = !chunkerStale &&
+            watermark !== undefined &&
+            watermark.size === entry.bytes.length &&
+            watermark.mtime === entry.mtime &&
+            watermark.content_hash === contentHash;
+        if (unchanged) {
+            // eslint-disable-next-line no-console
+            console.log('[Muninn] lane ingestTouch unchanged:', path);
+            return;
+        }
+        // eslint-disable-next-line no-console
+        console.log('[Muninn] lane ingestTouch ingesting:', path, 'watermark=', watermark, 'hash=', contentHash);
+        await this.ingest(path, entry);
+    }
+
+    private static utf8Decoder = new TextDecoder('utf-8', { fatal: false });
+
+    private async ingest(path: string, entry: FileEntry): Promise<{ chunks: number; embedded: number }> {
+        this.checkStopped();
+        const result = chunkNote(entry.bytes);
+        const records: ChunkRecord[] = result.chunks.map((c, i) => {
+            const text = IntakeLane.utf8Decoder.decode(entry.bytes.subarray(c.bs, c.be));
+            return {
+                path,
+                ord: i,
+                bs: c.bs,
+                be: c.be,
+                vh: c.vh,
+                text,
+                title: c.chain.join(' > '),
+            };
+        });
+        // eslint-disable-next-line no-console
+        console.log('[Muninn] lane ingest chunks:', path, records.length);
+        const tagRecords = this.buildTagRecords(result, records);
+        const missingVhs = this.findMissingEmbeddings(records);
+        const embedded = await this.embedMissing(missingVhs);
+        this.store.replaceChunksForPath(path, records, {
+            size: entry.bytes.length,
+            mtime: entry.mtime,
+            content_hash: contentSha(entry.bytes),
+        }, tagRecords);
+        // eslint-disable-next-line no-console
+        console.log('[Muninn] lane ingest stored:', path, 'chunks=', records.length, 'embedded=', embedded);
+        return { chunks: records.length, embedded };
+    }
+
+    private buildTagRecords(result: ReturnType<typeof chunkNote>, records: ChunkRecord[]): TagRecord[] {
+        if (result.fm === null) return [];
+        const rawTags = result.fm.tags;
+        if (rawTags === undefined || (Array.isArray(rawTags) && rawTags.length === 0)) return [];
+        const tags = Array.isArray(rawTags) ? rawTags : [rawTags];
+        const seen = new Set<string>();
+        const out: TagRecord[] = [];
+        for (const r of records) {
+            if (seen.has(r.vh)) continue;
+            seen.add(r.vh);
+            out.push({ vh: r.vh, tags });
+        }
+        return out;
+    }
+
+    private async embedMissing(missing: Array<{ vh: string; text: string }>): Promise<number> {
+        if (missing.length === 0 || this.embedClient === null) return 0;
+        let embedded = 0;
+        let failedLogged = false;
+        for (const batch of chunk(missing, this.embedBatchWidth)) {
+            const fetched = await this.embedClient.embed(batch);
+            if (fetched === null) {
+                if (!failedLogged) {
+                    failedLogged = true;
+                    // eslint-disable-next-line no-console
+                    console.warn('[Muninn] lane embed failed: embedder returned null; remaining missing embeddings skipped');
+                }
+                continue;
+            }
+            const valid = fetched.filter((r) => this.isValidEmbedding(r));
+            this.store.insertEmbeddings(valid);
+            embedded += valid.length;
+        }
+        return embedded;
+    }
+
+    private isValidEmbedding(r: EmbeddingRecord): boolean {
+        return r.dim === this.expectedDim()
+            && r.model_tag === this.modelTag
+            && r.epoch === this.epoch
+            && r.vh.length > 0
+            && r.vector.length > 0;
+    }
+
+    private expectedDim(): number {
+        const metaDim = this.store.getMeta('embedder_dim');
+        if (metaDim !== undefined) return Number(metaDim);
+        // Default for the bundled model tag.
+        return 768;
+    }
+
+    private findMissingEmbeddings(records: ChunkRecord[]): Array<{ vh: string; text: string }> {
+        const missing: Array<{ vh: string; text: string }> = [];
+        const seen = new Set<string>();
+        for (const r of records) {
+            if (seen.has(r.vh)) continue;
+            seen.add(r.vh);
+            // T58 B3: a chunk below the degenerate floor gets NO embedding
+            // (chunk rows stay — the FTS text lane is untouched).
+            if (IntakeLane.countNonWhitespaceBytes(r.text) <= DEGENERATE_MAX_NONWS_BYTES) {
+                continue;
+            }
+            if (this.store.getEmbedding(r.vh) === undefined) {
+                missing.push({ vh: r.vh, text: r.text });
+            }
+        }
+        return missing;
+    }
+
+    // T58 B3 helper: UTF-8 byte count of the non-whitespace content of a
+    // decoded chunk (the floor is about non-whitespace bytes: '----' and
+    // whitespace runs are not text).
+    private static countNonWhitespaceBytes(text: string): number {
+        let bytes = 0;
+        for (const ch of text) {
+            if (/\s/.test(ch)) continue;
+            const cp = ch.codePointAt(0) ?? 0; // iteration is per code point; 0 keeps the count total
+            bytes += cp <= 0x7f ? 1 : cp <= 0x7ff ? 2 : cp <= 0xffff ? 3 : 4;
+        }
+        return bytes;
+    }
+}
+
+type PathState =
+    | { kind: 'touch' }
+    | { kind: 'delete' }
+    | { kind: 'rename'; newPath: string }
+    | { kind: 'renamePrefix'; toFolder: string };
+
+/** External event arriving from Obsidian. Same shape as PathState but kept
+ *  distinct to make the fold direction obvious. */
+type IntakeOp = PathState;
+
+function foldState(oldState: PathState, event: IntakeOp): PathState {
+    // The map key is always the path the event was reported against.
+    // We model the logical outcome for that original path.
+    if (event.kind === 'delete') return { kind: 'delete' };
+    if (event.kind === 'rename') {
+        // A rename of a path currently targeted at `newPath` means the
+        // logical destination becomes the new rename target.
+        return { kind: 'rename', newPath: event.newPath };
+    }
+    if (event.kind === 'renamePrefix') {
+        // Folder renames override any pending touch/rename for the same
+        // prefix; a delete still dominates.
+        if (oldState.kind === 'delete') return oldState;
+        return { kind: 'renamePrefix', toFolder: event.toFolder };
+    }
+    // Touch on top of anything: keep the current logical state.
+    return oldState;
+}
+
+function chunk<T>(arr: T[], size: number): T[][] {
+    const out: T[][] = [];
+    for (let i = 0; i < arr.length; i += size) {
+        out.push(arr.slice(i, i + size));
+    }
+    return out;
+}

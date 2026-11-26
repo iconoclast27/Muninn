@@ -1,0 +1,552 @@
+# CHANGELOG
+
+## 1.5.0
+
+**Models:** Obsidian `1.15.1` (`public` channel). Internal members can differ in other app versions, so guard the ones you use when your `minAppVersion` is older.
+
+**Branch:** [`release/obsidian-public/1.15.1`](https://github.com/obsidian-typings/obsidian-typings/tree/release/obsidian-public/1.15.1)
+
+**Commits:** [`obsidian-public-1.15.1-v1.4.0...obsidian-public-1.15.1-v1.5.0`](https://github.com/obsidian-typings/obsidian-typings/compare/obsidian-public-1.15.1-v1.4.0...obsidian-public-1.15.1-v1.5.0)
+
+- feat: type MarkdownPreviewRenderer.registerCodeBlockPostProcessor ([`d7ad73e`](https://github.com/obsidian-typings/obsidian-typings/commit/d7ad73ea8c3ff9cd85c164d2878ee428636e2f5f))
+
+### Declared API changes
+
+Names only, compared with `obsidian-public-1.15.1-v1.4.0`.
+
+**Added (1):**
+
+- `registerCodeBlockPostProcessor`
+
+## 1.4.0
+
+**Models:** Obsidian `1.15.1` (`public` channel). Internal members can differ in other app versions, so guard the ones you use when your `minAppVersion` is older.
+
+**Branch:** [`release/obsidian-public/1.15.1`](https://github.com/obsidian-typings/obsidian-typings/tree/release/obsidian-public/1.15.1)
+
+**Commits:** [`obsidian-public-1.15.1-v1.3.0...obsidian-public-1.15.1-v1.4.0`](https://github.com/obsidian-typings/obsidian-typings/compare/obsidian-public-1.15.1-v1.3.0...obsidian-public-1.15.1-v1.4.0)
+
+- fix(bases): take a property name in updateProperty, declare BasesEntry.frontmatter and note ([`ebb4853`](https://github.com/obsidian-typings/obsidian-typings/commit/ebb48538b21c5bd0af98995669b21bfe9c70462a))
+
+### Declared API changes
+
+Names only, compared with `obsidian-public-1.15.1-v1.3.0`.
+
+**Added (2):**
+
+- `BasesEntry.frontmatter`
+- `BasesEntry.note`
+
+## 1.3.0
+
+**Models:** Obsidian `1.15.1` (`public` channel). Internal members can differ in other app versions, so guard the ones you use when your `minAppVersion` is older.
+
+**Branch:** [`release/obsidian-public/1.15.1`](https://github.com/obsidian-typings/obsidian-typings/tree/release/obsidian-public/1.15.1)
+
+**Commits:** [`obsidian-public-1.15.1-v1.2.0...obsidian-public-1.15.1-v1.3.0`](https://github.com/obsidian-typings/obsidian-typings/compare/obsidian-public-1.15.1-v1.2.0...obsidian-public-1.15.1-v1.3.0)
+
+### Breaking changes
+
+- fix(types): type MetadataCache.blockCache as its own cache and drop the markdown-importer plugin ([`7c286a6`](https://github.com/obsidian-typings/obsidian-typings/commit/7c286a6dea1933df86598439ce7783805c13a2bb))
+- fix(internal-plugins): drop the markdown-importer core plugin ([`a800b0f`](https://github.com/obsidian-typings/obsidian-typings/commit/a800b0f834ab803e6559625ca24846156fa98ed9))
+- fix(metadata-cache): give blockCache its own MetadataCacheBlockCache type ([`3b44ee9`](https://github.com/obsidian-typings/obsidian-typings/commit/3b44ee927b6748a8cd8213b20a739bee81bdb1c2))
+
+### Other changes
+
+- fix: re #151 ([`250136c`](https://github.com/obsidian-typings/obsidian-typings/commit/250136c183bf68163605a136d8fbe5692c21df27))
+- fix(deps): clear the glob and minimatch advisories ([`97e3023`](https://github.com/obsidian-typings/obsidian-typings/commit/97e3023943006b6cd3bfe12edd5e88aaaefb6f89))
+
+### Declared API changes
+
+Names only, compared with `obsidian-public-1.15.1-v1.2.0`.
+
+**Added (23):**
+
+- `MetadataCacheBlockCache`
+- `MetadataCacheBlockCache.app`
+- `MetadataCacheBlockCache.cache`
+- `MetadataCacheBlockCache.clear`
+- `MetadataCacheBlockCache.getAll`
+- `MetadataCacheBlockCache.getForFile`
+- `MetadataCacheBlockCacheBlock`
+- `MetadataCacheBlockCacheBlock.display`
+- `MetadataCacheBlockCacheBlock.node`
+- `MetadataCacheBlockCacheFileEntry`
+- `MetadataCacheBlockCacheFileEntry.blocks`
+- `MetadataCacheBlockCacheFileEntry.content`
+- `MetadataCacheBlockCacheFileEntry.file`
+- `MetadataCacheBlockCacheFileEntry.mtime`
+- `MetadataCacheBlockCacheNode`
+- `MetadataCacheBlockCacheNode.children`
+- `MetadataCacheBlockCacheNode.depth`
+- `MetadataCacheBlockCacheNode.id`
+- `MetadataCacheBlockCacheNode.position`
+- `MetadataCacheBlockCacheNode.type`
+- `SettingDefinitionBase.id`
+- `SettingDefinitionGroup.id`
+- `SettingDefinitionPage.id`
+
+**Removed (8):**
+
+- `BlockCache.app`
+- `BlockCache.cache`
+- `BlockCache.clear`
+- `BlockCache.getAll`
+- `BlockCache.getForFile`
+- `MarkdownImporterPlugin`
+- `MarkdownImporterPluginInstance`
+- `MarkdownImporterPluginInstance.app`
+
+## 1.2.0
+
+**Models:** Obsidian `1.15.1` (`public` channel). Internal members can differ in other app versions, so guard the ones you use when your `minAppVersion` is older.
+
+**Branch:** [`release/obsidian-public/1.15.1`](https://github.com/obsidian-typings/obsidian-typings/tree/release/obsidian-public/1.15.1)
+
+**Commits:** [`obsidian-public-1.15.1-v1.1.0...obsidian-public-1.15.1-v1.2.0`](https://github.com/obsidian-typings/obsidian-typings/compare/obsidian-public-1.15.1-v1.1.0...obsidian-public-1.15.1-v1.2.0)
+
+### Breaking changes
+
+- feat(workspace): type the members unset before the layout loads as nullable, with a LayoutReadyWorkspace view ([`6ae7e11`](https://github.com/obsidian-typings/obsidian-typings/commit/6ae7e110eb3d109b116480851b079cc56ddd4c43))
+- fix(workspace): correct members whose declared type disagrees with the 1.15.1 runtime ([`fe1fa79`](https://github.com/obsidian-typings/obsidian-typings/commit/fe1fa79a8a0e6307e543f8c5e4731b055e4010c9))
+- fix(embed-registry): let EmbedCreator decline a file and loadFile be async ([`1129934`](https://github.com/obsidian-typings/obsidian-typings/commit/1129934bd4dc5d5ccde22657e0ab6c74573296fb))
+
+### Other changes
+
+- feat(sync): declare the local file records and file-event handlers of SyncPluginInstance ([`e256235`](https://github.com/obsidian-typings/obsidian-typings/commit/e256235946b8b9552996cf16c2adbd85e9841049))
+
+### Declared API changes
+
+Names only, compared with `obsidian-public-1.15.1-v1.1.0`.
+
+**Added (23):**
+
+- `LayoutReadyWorkspace`
+- `LayoutReadyWorkspace.activeTabGroup`
+- `LayoutReadyWorkspace.floatingSplit`
+- `LayoutReadyWorkspace.layoutReady`
+- `SyncLocalFile`
+- `SyncLocalFile.ctime`
+- `SyncLocalFile.folder`
+- `SyncLocalFile.hash`
+- `SyncLocalFile.mtime`
+- `SyncLocalFile.path`
+- `SyncLocalFile.previouspath`
+- `SyncLocalFile.size`
+- `SyncLocalFile.synchash`
+- `SyncLocalFile.synctime`
+- `SyncPluginInstance.boundOnFileAdd`
+- `SyncPluginInstance.boundOnFileRemove`
+- `SyncPluginInstance.boundOnFileRename`
+- `SyncPluginInstance.localFiles`
+- `SyncPluginInstance.onFileAdd`
+- `SyncPluginInstance.onFileRemove`
+- `SyncPluginInstance.onFileRename`
+- `SyncPluginInstance.scanFiles`
+- `SyncPluginInstance.skippedFiles`
+
+**Removed (3):**
+
+- `FileExplorerPlugin.revealInFolder`
+- `RecentFileTracker.onFileCreated`
+- `View.closeable`
+
+## 1.1.0
+
+**Models:** Obsidian `1.15.1` (`public` channel). Internal members can differ in other app versions, so guard the ones you use when your `minAppVersion` is older.
+
+**Branch:** [`release/obsidian-public/1.15.1`](https://github.com/obsidian-typings/obsidian-typings/tree/release/obsidian-public/1.15.1)
+
+**Commits:** [`obsidian-catalyst-1.15.1-v1.1.0...obsidian-public-1.15.1-v1.1.0`](https://github.com/obsidian-typings/obsidian-typings/compare/obsidian-catalyst-1.15.1-v1.1.0...obsidian-public-1.15.1-v1.1.0) -- the first release from this branch, so the range opens at `obsidian-catalyst-1.15.1-v1.1.0`, the nearest earlier release it was cut from
+
+### Breaking changes
+
+- fix!: move the Lezer and CodeMirror language/search boundaries behind an opt-in /lezer subpath ([`96a1156`](https://github.com/obsidian-typings/obsidian-typings/commit/96a1156fb5dd3285ee4e9a92072298d169b2d723))
+- fix(hotkey-manager)!: type save and load as returning Promise<void> ([`8667b0d`](https://github.com/obsidian-typings/obsidian-typings/commit/8667b0df6444b52ae3dc230da0b7495fb3e0e3e8))
+- feat(runtime)!: model the Obsidian catalyst 1.15.1 runtime changes ([`f6a9f25`](https://github.com/obsidian-typings/obsidian-typings/commit/f6a9f256d2b00b40480c02ac58282b2971ff0ecb))
+- fix(pdfjs)!: match the vendored PDF.js page and render task ([`46d804d`](https://github.com/obsidian-typings/obsidian-typings/commit/46d804d89debb3bdfa822c374e5d8c7fbe6c5e81))
+- fix(bases)!: type the Bases file view controller as QueryController ([`c8aa214`](https://github.com/obsidian-typings/obsidian-typings/commit/c8aa21437c85e4061667da2659a759990d264ae4))
+
+### Other changes
+
+- feat: type the Workspaces plugin instance state and methods ([`54dd244`](https://github.com/obsidian-typings/obsidian-typings/commit/54dd244d5f2630fc29946ab60d4b127c09455ff5))
+- docs(bases): describe the table scroll position as fractions, not pixels ([`e136dd8`](https://github.com/obsidian-typings/obsidian-typings/commit/e136dd8c18bd365e9998a7a99aa67e029800f094))
+- feat: type the Sync and Publish instance members, the Sync history view and the Publish dialog ([`730b1c8`](https://github.com/obsidian-typings/obsidian-typings/commit/730b1c80529b6bdb9251ce0e46a8628f9ff1771a))
+- feat(sync): type the remote vault and the selective-sync filter ([`8af4c57`](https://github.com/obsidian-typings/obsidian-typings/commit/8af4c57898ea9bdd3629d51732f2fe3749731f8d))
+- chore: generate README.md from template ([`caacfc4`](https://github.com/obsidian-typings/obsidian-typings/commit/caacfc4d4b00beef3df1786207068d5111716bf2))
+- fix(lint): raise the shipped-code Node floor to the 1.1.9 launcher's Node 16.16.0 ([`4d186a6`](https://github.com/obsidian-typings/obsidian-typings/commit/4d186a6cf0c8f390346d87cdfa65b071d3b3269d))
+- docs: do not promise the key-presence precedence of SettingDefinitionBase.disabled ([`a9fb471`](https://github.com/obsidian-typings/obsidian-typings/commit/a9fb471da002274c379352c87aa3d466a489d9a7))
+- feat: type the quick switcher modal and its file-suggest base ([`56eaa0f`](https://github.com/obsidian-typings/obsidian-typings/commit/56eaa0f90e91ae8a5cf3bef0acf09388b853aeff))
+
+### Declared API changes
+
+Names only, compared with `obsidian-catalyst-1.15.1-v1.1.0`.
+
+**Added (336):**
+
+- `CanvasIndex.cancelRun`
+- `CapacitorAdapter.readByUrl`
+- `Editor.everyLine`
+- `Editor.getSelectionHeadingLevel`
+- `Editor.isSelectionBlockquote`
+- `Editor.isSelectionBulletList`
+- `Editor.isSelectionCheckedTask`
+- `Editor.isSelectionNumberList`
+- `Editor.iterateSelectedLines`
+- `EmptyView.updateActions`
+- `FileManager.getTrashOption`
+- `FileManager.showSystemTrashFailed`
+- `FileManager.systemTrashFailure`
+- `FileSuggestModal`
+- `FileSuggestModal.allowCreateNewFile`
+- `FileSuggestModal.constructor__`
+- `FileSuggestModal.context`
+- `FileSuggestModal.createButtonEl`
+- `FileSuggestModal.getSuggestions`
+- `FileSuggestModal.renderSuggestion`
+- `FileSuggestModal.shouldShowAlias`
+- `FileSuggestModal.shouldShowAllTypes`
+- `FileSuggestModal.shouldShowImages`
+- `FileSuggestModal.shouldShowMarkdown`
+- `FileSuggestModal.shouldShowNonAttachments`
+- `FileSuggestModal.shouldShowNonFileBookmarks`
+- `FileSuggestModal.shouldShowNonImageAttachments`
+- `FileSuggestModal.shouldShowUnresolved`
+- `FileSuggestModal.supportsCreate`
+- `FileSuggestModalAliasSuggestion`
+- `FileSuggestModalAliasSuggestion.alias`
+- `FileSuggestModalAliasSuggestion.downranked`
+- `FileSuggestModalAliasSuggestion.file`
+- `FileSuggestModalAliasSuggestion.match`
+- `FileSuggestModalAliasSuggestion.type`
+- `FileSuggestModalBookmarkSuggestion`
+- `FileSuggestModalBookmarkSuggestion.bookmarkPath`
+- `FileSuggestModalBookmarkSuggestion.item`
+- `FileSuggestModalBookmarkSuggestion.match`
+- `FileSuggestModalBookmarkSuggestion.type`
+- `FileSuggestModalFileSuggestion`
+- `FileSuggestModalFileSuggestion.downranked`
+- `FileSuggestModalFileSuggestion.file`
+- `FileSuggestModalFileSuggestion.match`
+- `FileSuggestModalFileSuggestion.type`
+- `FileSuggestModalSuggestion`
+- `FileSuggestModalUnresolvedSuggestion`
+- `FileSuggestModalUnresolvedSuggestion.linktext`
+- `FileSuggestModalUnresolvedSuggestion.match`
+- `FileSuggestModalUnresolvedSuggestion.type`
+- `FileSystemAdapter.unreadablePaths`
+- `GraphRenderer.cancelRender`
+- `InfinityScroll.blockSize`
+- `InfinityScroll.cancelCompute`
+- `InfinityScroll.lastPass`
+- `InfinityScroll.minPassInterval`
+- `InfinityScroll.setMinPassInterval`
+- `Input`
+- `Input.chunk`
+- `Input.length`
+- `Input.lineChunks`
+- `Input.read`
+- `InteropLezerTree`
+- `InteropParseContext`
+- `InteropSearchQuery`
+- `InteropStringNodeProp`
+- `IterMode`
+- `LezerInterop`
+- `LezerTree`
+- `LezerTree.children`
+- `LezerTree.constructor`
+- `LezerTree.cursor`
+- `LezerTree.cursorAt`
+- `LezerTree.empty`
+- `LezerTree.length`
+- `LezerTree.positions`
+- `LezerTree.prop`
+- `LezerTree.resolve`
+- `LezerTree.resolveInner`
+- `LezerTree.topNode`
+- `LezerTree.type`
+- `LezerTreeBuffer`
+- `LezerTreeBuffer.buffer`
+- `LezerTreeBuffer.length`
+- `LezerTreeBuffer.set`
+- `LezerTreeCursor`
+- `LezerTreeCursor.firstChild`
+- `LezerTreeCursor.from`
+- `LezerTreeCursor.lastChild`
+- `LezerTreeCursor.name`
+- `LezerTreeCursor.next`
+- `LezerTreeCursor.nextSibling`
+- `LezerTreeCursor.node`
+- `LezerTreeCursor.parent`
+- `LezerTreeCursor.prev`
+- `LezerTreeCursor.prevSibling`
+- `LezerTreeCursor.to`
+- `LezerTreeCursor.tree`
+- `LezerTreeCursor.type`
+- `LezerTreeFragment`
+- `LezerTreeFragment.from`
+- `LezerTreeFragment.offset`
+- `LezerTreeFragment.to`
+- `LezerTreeFragment.tree`
+- `LezerTreeRange`
+- `LezerTreeRange.from`
+- `LezerTreeRange.to`
+- `MountedLezerTree`
+- `MountedLezerTree.overlay`
+- `MountedLezerTree.parser`
+- `MountedLezerTree.tree`
+- `NodeProp`
+- `NodeProp.add`
+- `NodeProp.closedBy`
+- `NodeProp.constructor`
+- `NodeProp.contextHash`
+- `NodeProp.deserialize`
+- `NodeProp.group`
+- `NodeProp.lookAhead`
+- `NodeProp.mounted`
+- `NodeProp.openedBy`
+- `NodeProp.perNode`
+- `NodePropConfig`
+- `NodePropConfig.deserialize`
+- `NodePropConfig.perNode`
+- `NodePropSelectorMap`
+- `NodePropSource`
+- `NodeSet`
+- `NodeSet.types`
+- `NodeType`
+- `NodeType.id`
+- `NodeType.name`
+- `NodeType.none`
+- `NodeType.prop`
+- `Notice.autoHide`
+- `Notice.hidden`
+- `Notice.hovered`
+- `Notice.isHidden`
+- `Notice.tryHide`
+- `ObsidianLezerTypes`
+- `ParseContext`
+- `ParseContext.get`
+- `ParseContext.skipUntilInView`
+- `ParseContext.state`
+- `ParseContext.viewport`
+- `ParseContextRange`
+- `ParseContextRange.from`
+- `ParseContextRange.to`
+- `Parser`
+- `Parser.createParse`
+- `Parser.parse`
+- `PartialParse`
+- `PartialParse.advance`
+- `PartialParse.parsedPos`
+- `PartialParse.stopAt`
+- `PartialParse.stoppedAt`
+- `PlatformEx.canUseSystemTrash`
+- `Plugins.getPluginManifest`
+- `Plugins.isInstalled`
+- `Plugins.readManifest`
+- `PublishFileDiff`
+- `PublishFileDiff.checked`
+- `PublishFileDiff.ctime`
+- `PublishFileDiff.mtime`
+- `PublishFileDiff.path`
+- `PublishFileDiff.size`
+- `PublishFileDiff.type`
+- `PublishFileListSection`
+- `PublishFileListSection.checkAll`
+- `PublishFileListSection.childrenEl`
+- `PublishFileListSection.clear`
+- `PublishFileListSection.collapsed`
+- `PublishFileListSection.files`
+- `PublishFileListSection.headerEl`
+- `PublishFileListSection.publish`
+- `PublishFileListSection.sectionEl`
+- `PublishFileListSection.uncheckAll`
+- `PublishFileTreeItem`
+- `PublishFileTreeItem.checkboxEl`
+- `PublishFileTreeItem.diff`
+- `PublishFileTreeItem.name`
+- `PublishFileTreeItem.path`
+- `PublishFileTreeItem.section`
+- `PublishFileTreeItem.setChecked`
+- `PublishModal`
+- `PublishModal.openReviewChanges`
+- `PublishModal.plugin`
+- `PublishModal.reviewChangesSection`
+- `PublishPluginInstance.getCurrentSlug`
+- `PublishPluginInstance.modal`
+- `PublishPluginInstance.openModal`
+- `PublishPluginInstance.siteId`
+- `PublishReviewChangesSection`
+- `PublishReviewChangesSection.app`
+- `PublishReviewChangesSection.el`
+- `PublishReviewChangesSection.hide`
+- `PublishReviewChangesSection.parentModal`
+- `PublishReviewChangesSection.pathToDiffMap`
+- `PublishReviewChangesSection.sectionChanged`
+- `PublishReviewChangesSection.sectionNew`
+- `PublishReviewChangesSection.sectionUnchanged`
+- `PublishReviewChangesSection.show`
+- `QuickSwitcherModal`
+- `QuickSwitcherModal.constructor2__`
+- `QuickSwitcherModal.onChooseSuggestion`
+- `RenderTask.onError`
+- `ResultDom.changedDuringSearch`
+- `ResultDom.getQueueSortFunction`
+- `ResultDom.getRelevance`
+- `ResultDom.relevance`
+- `ResultDomItem.getScore`
+- `ResultDomItem.score`
+- `ResultDomItem.scoreQuery`
+- `SearchQuery`
+- `SearchQuery.caseSensitive`
+- `SearchQuery.constructor`
+- `SearchQuery.eq`
+- `SearchQuery.getCursor`
+- `SearchQuery.literal`
+- `SearchQuery.regexp`
+- `SearchQuery.replace`
+- `SearchQuery.search`
+- `SearchQuery.valid`
+- `SearchQuery.wholeWord`
+- `SearchQueryConfig`
+- `SearchQueryConfig.caseSensitive`
+- `SearchQueryConfig.literal`
+- `SearchQueryConfig.regexp`
+- `SearchQueryConfig.replace`
+- `SearchQueryConfig.search`
+- `SearchQueryConfig.wholeWord`
+- `SearchQueryMatch`
+- `SearchQueryMatch.from`
+- `SearchQueryMatch.to`
+- `SearchQueueComponent.setMatched`
+- `SearchQueueComponent.unmatchedFiles`
+- `SearchQueueStartOptions.narrows`
+- `SearchRelevance`
+- `SearchRelevance.app`
+- `SearchRelevance.caseSensitive`
+- `SearchRelevance.matcher`
+- `SearchRelevance.matchesTitle`
+- `SearchRelevance.score`
+- `SwitcherPluginOptions`
+- `SwitcherPluginOptions.showAllFileTypes`
+- `SwitcherPluginOptions.showAttachments`
+- `SwitcherPluginOptions.showExistingOnly`
+- `SyncFileTreeItem`
+- `SyncFileTreeItem.sFile`
+- `SyncFileTreeItem.view`
+- `SyncFilter`
+- `SyncFilter._allowSyncFile`
+- `SyncFilter.allowSpecialFiles`
+- `SyncFilter.allowSyncFile`
+- `SyncFilter.allowTypes`
+- `SyncFilter.changeFilter`
+- `SyncFilter.clear`
+- `SyncFilter.clearCache`
+- `SyncFilter.configDir`
+- `SyncFilter.filterCache`
+- `SyncFilter.findUnreadable`
+- `SyncFilter.ignoreFolders`
+- `SyncFilter.isPluginFile`
+- `SyncFilter.set`
+- `SyncFilterFile`
+- `SyncFilterFile.folder`
+- `SyncFilterFile.path`
+- `SyncPluginInstance.changeFilter`
+- `SyncPluginInstance.filter`
+- `SyncPluginInstance.getRemoteVaultId`
+- `SyncPluginInstance.getRemoteVaultName`
+- `SyncPluginInstance.getStatus`
+- `SyncPluginInstance.serverFiles`
+- `SyncPluginInstance.setAllowSpecialFile`
+- `SyncPluginInstance.setIgnoreFolders`
+- `SyncPluginInstance.setRemoteVaultName`
+- `SyncPluginInstance.setSyncType`
+- `SyncPluginInstance.statusIconEl`
+- `SyncPluginInstance.syncStatus`
+- `SyncPluginInstance.vaultId`
+- `SyncPluginInstance.vaultName`
+- `SyncServerFile`
+- `SyncServerFile.ctime`
+- `SyncServerFile.deleted`
+- `SyncServerFile.device`
+- `SyncServerFile.folder`
+- `SyncServerFile.hash`
+- `SyncServerFile.initial`
+- `SyncServerFile.mtime`
+- `SyncServerFile.path`
+- `SyncServerFile.size`
+- `SyncServerFile.uid`
+- `SyncServerFile.user`
+- `SyncStatus`
+- `SyncView.fileItems`
+- `SyncView.tree`
+- `SyncView.updateRecentChanges`
+- `SyntaxNode`
+- `SyntaxNode.cursor`
+- `SyntaxNode.firstChild`
+- ...and 36 more
+
+**Removed (62):**
+
+- `BasesController`
+- `BasesController.addResult`
+- `BasesController.app`
+- `BasesController.buildBasesContext`
+- `BasesController.clear`
+- `BasesController.clearError`
+- `BasesController.ctx`
+- `BasesController.currentFile`
+- `BasesController.displayError`
+- `BasesController.error`
+- `BasesController.errorEl`
+- `BasesController.errors`
+- `BasesController.evaluateRelevantProperties`
+- `BasesController.events`
+- `BasesController.filterMenu`
+- `BasesController.getActiveBasesViewOfType`
+- `BasesController.getCurrentFile`
+- `BasesController.getEditorLanguageSupport`
+- `BasesController.getMockValue`
+- `BasesController.getMockValueForIdent`
+- `BasesController.getProperties`
+- `BasesController.getQueryViewNames`
+- `BasesController.getViewConfig`
+- `BasesController.getWidgetForProperty`
+- `BasesController.initialScan`
+- `BasesController.mockContext`
+- `BasesController.newItemMenu`
+- `BasesController.notifyView`
+- `BasesController.onConfigChanged`
+- `BasesController.onResize`
+- `BasesController.plugin`
+- `BasesController.promptForAddView`
+- `BasesController.propertyMenu`
+- `BasesController.query`
+- `BasesController.queryState`
+- `BasesController.queue`
+- `BasesController.relevantProperties`
+- `BasesController.removeResult`
+- `BasesController.requestNotifyView`
+- `BasesController.results`
+- `BasesController.resultsMenu`
+- `BasesController.runQuery`
+- `BasesController.selectView`
+- `BasesController.setQuery`
+- `BasesController.setQueryAndView`
+- `BasesController.sortMenu`
+- `BasesController.startLoader`
+- `BasesController.stopLoader`
+- `BasesController.update`
+- `BasesController.updateCurrentFile`
+- `BasesController.view`
+- `BasesController.viewContainerEl`
+- `BasesController.viewEstates`
+- `BasesController.viewHeaderEl`
+- `BasesController.viewMenu`
+- `BasesController.viewName`
+- `CanvasIndex.frame`
+- `GraphRenderer.renderTimer`
+- `InfinityScroll.queued`
+- `InfinityScroll.renderBlockSize`
+- `PDFPageProxy.height`
+- `PDFPageProxy.width`

@@ -1,0 +1,1 @@
+export type * from "@obsidian-typings/obsidian-public-latest/pdfjs";
