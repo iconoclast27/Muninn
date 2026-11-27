@@ -333,6 +333,10 @@ their receipts; Muninn chain retains M-f01–M-f23, retires M-f25–M-f28 (recei
 chain), and M-f29–M-f33 resolve at or after Muninn's narrowed-contract act — the chain is not final for
 Muninn until that act, which is itself gated per T15.
 
+**Conform 2026-11-27 (landing + amendment, not a ruling):** the narrowed-contract act's
+draft text landed at `docs/decisions/adr-01.md` and was amended the same day — **Draft,
+awaiting Dan's ruling act**; details ride there. No ruling implied; implementation stays
+gated on the act itself (T15 lane).
 
 ## 12. Baselines landed (step-4 execution, 2026-11-26 — measured receipts)
 

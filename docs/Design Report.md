@@ -76,6 +76,8 @@ Registered `addCommand` entries stay user-facing palette items, AND may also be 
 
 ## 5. The door (Muninn, narrowed)
 
+Status: **Draft — awaits Dan's ruling act** (this is the narrowed-contract text; the
+T15 lane: implementation is gated on the contract act). See [`decisions/adr-01.md`](decisions/adr-01.md).
 One verb: `notesLike` — ranked, scored, honest-labeled. The honest label ("semantic match, not
 lexical, not freshness") rides the tool description and the per-result self-description (D-5's
 per-result disclosure, "approved, but we'll see if it works": the empirical test is a smoke-task
