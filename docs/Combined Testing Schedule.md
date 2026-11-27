@@ -57,5 +57,14 @@ Reportable observables at the chat surface (no console), at the new turn anatomy
    decline — an interrupt is never a decision (machine half: H-f44 V4 — decision 'stopped', no toolError).
 6. The modal names the call by the model-facing verb it will execute (the committed recipeName slot
    filled at the per-call anatomy — H-f44's disclosed choice).
+7. NEVER mode (ADR 01, Huginn root, Accepted 2026-11-27): a mutation never opens a modal and applies
+   nothing; any chat-visible complaint is the model's own doing, not apparatus law (machine half: H-f44
+   V7 — decision 'declined' + toolError naming the auto-refuse and the mode, zero modal consults).
+8. YOLO mode (ADR 01): a mutation applies without a pause and the tool-use notice to the user says it
+   was auto-approved, as far as the client UI can honestly show ("reasonable practicable" per the ruling;
+   machine half: H-f44 V8 — decision 'approved' + GateOutcome.notice, zero consults).
+9. AUTOAPPROVE (D-13 law, ADR 01 routing): without an external-reading call in the current turn history a
+   mutation auto-approves with a notice; once one is present, that turn's mutations pause at the modal
+   again (machine half: H-f44 V9 — both paths, consult counts pinned).
 
-Today: H1–H3 authored; no other blocks yet.
+Today: H1–H3 authored (H3 amended same day for the ADR 01 mode ruling); no other blocks yet.
