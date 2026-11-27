@@ -24,4 +24,18 @@ Reportable observables from opening the chat (no console), at the new turn anato
    ungated (D-1/D-4 law; the gated write set is policed by H-f42 at the manifest seam, its modal
    observables ride the gate-leg blocks).
 
-Today: H1 authored; no other blocks yet.
+### H2 — Validator choke point (authored 2026-11-27, as the validator seam landed; the error channel itself round-trips at the client-wiring leg)
+
+Reportable observables at the chat surface (no console), at the new turn anatomy:
+
+1. A call for a verb the manifest never declared (hallucinated name) does not stall the turn: the
+   machine-readable tool error (`is_error: true`, the Lumo envelope — `docs/Design Report.md` §2,
+   `docs/research/external-command-surfaces.md` §2) reaches the model and the model self-corrects
+   against it inside the client's round budget (`docs/Restart Ledger.md` §7 — round count is law).
+2. A write/call targeting a path outside the vault-rooted set (absolute path, `..` segment, blank)
+   rejects BEFORE execution — nothing outside the vault-rooted set is touched; the model re-dresses
+   from the error. The rejection legs themselves are policed by H-f43 (Huginn root).
+3. A note path written without `.md` lands on the single normalized `.md` target (H-f09's re-anchored
+   contract at the validator seam); non-path payload fields are never path-handled (H-f30's face).
+
+Today: H1 + H2 authored; no other blocks yet.
