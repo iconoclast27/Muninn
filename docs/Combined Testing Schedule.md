@@ -107,4 +107,24 @@ value-import in either chat module is a chain-break, not a feature.
    alive via the machine-readable wire (H-f45 V1/V7 carry the canned halves; the model-facing halves
    are exactly what this smoke is for).
 
-Today: H1–H4 authored (H3 amended same day for the ADR 01 mode ruling); no other blocks yet.
+### H5 — Teach layer: the skill catalog at the system position (authored 2026-11-27, as the recipes seam landed; machine halves policed by H-f46 in the Huginn root)
+
+Seam note (measured at this leg, 2026-11-27): the teach-layer mechanism survives whole (loader/parser/renderer/node-source/obsidian-source/installer/bundled — Ledger §11 REBUILD row); what moved is CONTENT: the six `.md` texts now teach the REAL manifest verbs with no gatherer placeholders (the gatherer was demolished at the baseline — H-f46 V2), and `bundled.ts` embeds the same texts BYTE-IDENTICAL to disk (H-f28's salvage row re-earned at this seam, H-f46 V1: the installer seeds bundled, the loader reads disk — the two must not drift). The chat channel: `main.ts` renders the loaded catalog through `renderSkillText` and hands `chat.ts` a `getSkillText` GETTER (the folder watcher's reload applies on the NEXT send — disclosed choice); the block rides the session's system line (Design §1 :14 "system (skill texts)", D-10 channel 1). Empty catalog or unwired option → NO block, never a fabricated header (H-f46 V6).
+
+1. The seeded catalog is felt: first run seeds the six skills into the SKILLS folder (machine halves:
+   H-f16's six names + H-f46 V1 byte identity); the folder watcher picks up edited skills.
+2. The named confusion survives real model rounds: an exact-words question picks `vault__searchVault`,
+   a "notes like X" question picks `muninn__notesLike` — the two families never confuse (machine half:
+   H-f46 V3 pins the related-notes teach text names both sides and carries the honest-label wording;
+   the model-facing halves are exactly what this smoke is for — same footing as H4 item 7).
+3. The honest-label wording shows at the answer face: a similarity result reads as a similarity match,
+   not a lexical hit, not freshness (Ledger §2.2 label law echoed in the teach text).
+4. The teach text never carries note content: the block is static payload design (no placeholders to
+   fill), so a hostile note body can NEVER reach an instruction position through the skill block — the
+   R9 split survives the leg (hostile DATA rides `role:"tool"` only, H-f45 V5's half; H-f46 V2 pins
+   the no-interpolation half).
+5. Edits apply by the next send: edit one skill's trigger class in the SKILLS folder, and the next
+   chat send follows the edit (getter semantics, disclosed; the watcher reload is the committed
+   `main.ts` face).
+
+Today: H1–H5 authored (H3 amended same day for the ADR 01 mode ruling; H5 rides the recipes leg); no other blocks yet.
