@@ -7,4 +7,21 @@ manual smoke on the new turn anatomy, reportable-observable-first; scenario iden
 
 **The blocks are authored as the rebuild lands its seams** (manifest → validator → gate legs → client
 wiring → recipes — `docs/Design Report.md` §8/§10); the smoke and the release pair land together at
-step 7 (`docs/Restart Ledger.md` §9). No release without the merged smoke passing. Today: no blocks yet.
+step 7 (`docs/Restart Ledger.md` §9). No release without the merged smoke passing.
+
+### H1 — Model-facing verb surface (authored 2026-11-27, as the manifest seam landed; runs at the merged smoke)
+
+Reportable observables from opening the chat (no console), at the new turn anatomy:
+
+1. A "notes like X" question reaches a tool call the chat view names `muninn__notesLike`; its results
+   present as similarity — the honest label ("a similarity match, not a lexical hit, not freshness",
+   `docs/Restart Ledger.md` §2.2) rides the tool description; the per-result disclosure half is the
+   empirical test owed on docket row R2.
+2. An exact-words question reaches `vault__searchVault` and never the `notesLike` family; if the model
+   dresses one as the other, the descriptions teach the pair and the validator's tool error is the
+   self-correction route (leg lands with the validator seam).
+3. A read-a-note question reaches `vault__readNote`; read turns apply nothing — read families stay
+   ungated (D-1/D-4 law; the gated write set is policed by H-f42 at the manifest seam, its modal
+   observables ride the gate-leg blocks).
+
+Today: H1 authored; no other blocks yet.
