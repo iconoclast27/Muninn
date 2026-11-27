@@ -38,4 +38,24 @@ Reportable observables at the chat surface (no console), at the new turn anatomy
 3. A note path written without `.md` lands on the single normalized `.md` target (H-f09's re-anchored
    contract at the validator seam); non-path payload fields are never path-handled (H-f30's face).
 
-Today: H1 + H2 authored; no other blocks yet.
+### H3 — Gate/modal/diff legs (authored 2026-11-27, as the gate seam landed; machine halves policed by H-f44 in the Huginn root)
+
+Reportable observables at the chat surface (no console), at the new turn anatomy:
+
+1. Every vault mutation call pauses at the approval modal showing the diff BEFORE apply (D-4 gate law);
+   a read turn never opens a modal (D-1/D-4; machine half: H-f44 V6 — the ROUTER refuses non-mutation
+   calls, so a wiring slip cannot quietly gate a read).
+2. Two writes in one turn mean two modals, each carrying its own diff — one gate per write, in order
+   (H-f33 re-anchor; machine half: H-f44 V2).
+3. A rename modal shows `old path → new path` with body-unchanged stated and no body-diff lines —
+   D-14 verbatim (Ledger §2.2:60); machine half: H-f44 V5 on `diff.ts` `renameDiff`/`renderDiff`.
+4. Rejecting applies nothing, leaves the vault bytes untouched, and the refusal reaches the model as a
+   machine-readable `is_error` tool result — the model can apologize, change plan, or stop, all visible
+   (§2 design consequence; machine half: H-f44 V3 — decision 'declined' + validator-class toolError).
+   The optional reason textarea rides the committed modal flow (approval-modal.ts:98-129).
+5. Stop while a modal is open: the modal closes immediately, nothing applies, nothing is recorded as a
+   decline — an interrupt is never a decision (machine half: H-f44 V4 — decision 'stopped', no toolError).
+6. The modal names the call by the model-facing verb it will execute (the committed recipeName slot
+   filled at the per-call anatomy — H-f44's disclosed choice).
+
+Today: H1–H3 authored; no other blocks yet.
