@@ -338,6 +338,12 @@ draft text landed at `docs/decisions/adr-01.md` and was amended the same day —
 awaiting Dan's ruling act**; details ride there. No ruling implied; implementation stays
 gated on the act itself (T15 lane).
 
+**Ruling 2026-11-27 (step-6 leg-0 act, Dan, verbatim: "ratified."):** ADR 01 accepted AS
+PROPOSED — ruling record is `docs/decisions/adr-01.md` (reborn apparatus, this root); the
+field ceremony landed as proposed. R-2's GATED rows (M-f04/f24, M-f29–M-f31 side) resolve
+per the ADR's resolutions table; implementation remains gated per-leg, T15 order
+(door narrow → mirror → op in the loop), red-first at the named seams.
+
 ## 12. Baselines landed (step-4 execution, 2026-11-26 — measured receipts)
 
 Huginn (HEAD `12a64e5` at tasking; receipts measured after execution):

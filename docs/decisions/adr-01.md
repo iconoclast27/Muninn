@@ -1,13 +1,11 @@
 # ADR 01 — The narrowed door contract (Muninn)
 
-Status: **Draft — awaits Dan's ruling act.** Not accepted. This draft is the executor's
-amended proposal of the contract text (amendment 2026-11-27: two-surface statement,
-resolutions table, proposed row shape, floor-doctrine home corrected), authored under D-16
-(the authored-design green light) and the T15 precedent (implementation gated on the
-contract act, which is Dan's separate act). It is NOT a ruling: it records the proposed
-contract and the authority chain, not Dan's verbatim ruling. Dan's ratification — or his
-edits of the contract text — are required to accept this ADR, and are not implied by this
-file. Field ceremony (`tie`, `band`, score names) remains Dan's to fix at ruling.
+Status: **Accepted — Dan's ruling act 2026-11-27 (verbatim: "ratified.").** Ratified as
+proposed: the contract text below is canon, and the field ceremony (`tie`, `band`, and
+the score carriers) landed AS PROPOSED (the R-2 "ratified as proposed" convention).
+This file is never edited after acceptance; changed decisions are new ADRs + dated
+addenda. Implementation remains gated on the per-leg acts, in T15 order: door
+(`api.ts` narrow) → Huginn mirror (`muninn-api.ts`) → the op in the loop.
 
 ## Authority chain
 
@@ -29,7 +27,7 @@ file. Field ceremony (`tie`, `band`, score names) remains Dan's to fix at ruling
   demolition; R-2's KEEP ratifications require the frozen TS surface to stay whole apart
   from the ratified leg.
 
-## Proposed contract text (awaiting Dan's ruling)
+## Contract text (accepted 2026-11-27, as proposed — "ratified.")
 
 The door narrows on **two named surfaces**; the contract is meaningless unless each is
 stated separately.
@@ -62,7 +60,7 @@ stated separately.
   the semantic-side refusals are dark-safe `null + reason` (empty/whitespace query, embedder
   unavailable — ADR-49 precedent, `api.ts:122` `fail()`) plus the band's `below margin`
   null channel.
-- **Proposed row shape for `notesLike` (field names are the draft's proposal, not canon)**:
+- **Row shape for `notesLike` (accepted as proposed)**:
   per-note rows under the whole-note anchor (seeds = every chunk of the note, max over seeds,
   self-exclusion note-wide — f33 header item 8, anchor shape (b), amended in place by Dan's
   rulings 2026-11-26); each row carries path, title/header, per-result score, and the per-result
@@ -82,9 +80,9 @@ stated separately.
   consumers measured at HEAD: f33/f04/f22/f31). `forceReindex` is a maintenance verb, not a
   question family — unchanged.
 
-## Resolutions this act itemizes (R8: "resolutions itemize there")
+## Resolutions this act itemizes (accepted with the act; R8: "resolutions itemize there")
 
-| Item | Proposed resolution (awaiting Dan) |
+| Item | Resolution (accepted as proposed) |
 |---|---|
 | `api.ts` path-answer leg | DEMOLISH (ratified R-2): path lane of the `listNotes` frame only |
 | `M-f27`, `M-f28` (listNotes browse) | DEMOLISH — already retired with the leg (Ledger §323) |
@@ -104,9 +102,9 @@ stated separately.
 - Freshness flag and the epoch-stamp legs (M-f32/M-f33) — PENDING candidates, awaiting a ruling.
 - Disclosure self-description efficacy — owed as the empirical smoke-task leg (docket R2,
   schedule block H1).
-- Field ceremony: `tie`, `band`, and score field names remain Dan's to fix at ruling; the
-  HEAD-cited proposal is the code comment (`src/api.ts:633` T58 A2, `:163`/`:223` T58 A3),
-  not the retired T58 dossiers.
+- Field ceremony — settled by the ratification itself, as proposed: the HEAD-cited proposal
+  names (`tie`, `band`, score carriers — `src/api.ts:633` T58 A2, `:163`/`:223` T58 A3 comments)
+  become the canon carriers at the narrowed verb.
 - Tool-skip policy — open by ruling, unaddressed here.
 
 ## Conform (status lines and pointers — restatement is drift)

@@ -11,4 +11,4 @@ carry status lines and pointers, not restatements, from here.
 
 | ADR | Title | Status |
 |---|---|---|
-| 01 | The narrowed door contract (Muninn) | **Draft — awaits Dan's ruling act** (authored 2026-11-27; not accepted; field names are the T58 draft's proposal, not canon) |
+| 01 | The narrowed door contract (Muninn) | **Accepted 2026-11-27** — Dan's ruling act, verbatim "ratified." (as proposed); implementation gated on per-leg acts, T15 order |
