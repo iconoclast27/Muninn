@@ -344,6 +344,82 @@ field ceremony landed as proposed. R-2's GATED rows (M-f04/f24, M-f29–M-f31 si
 per the ADR's resolutions table; implementation remains gated per-leg, T15 order
 (door narrow → mirror → op in the loop), red-first at the named seams.
 
+**Act 2026-11-27 (step-7 sequencing + observability face, Dan, verbatim):** "You're not going
+to like this, but the smoke is going to wait. I want the full shape of the plugin before doing
+a manual smoke with proper observables. One thing you might consider is having a verbose
+logging mode in the UI. That would assist with testing." Followed same-day by: "You do not
+have to code the full shape. I will explain your part." Recorded effects: step 7's merged
+smoke WAITS — a later act runs it (release line unchanged, still empty); the full plugin shape
+(step-6 remainder) lands before any smoke; the UI verbose-logging mode is a **proposal seed**
+— its shape is the executor's to propose at measured seams, canon awaits Dan's ruling; and
+implementation acts await Dan's explanation of the executor's part (no code act implied).
+
+**Act 2026-11-27 (T15 lane delegated to Inkling, Dan, verbatim:** "So prepare the narrowed door
+code legs for Inkling and leave task instructions as you have noted. Then we'll look at the next
+contract and you can report on that."**)** Recorded effects: Coder authored the pinned instruction
+packets — P-M1 (`api.ts` path-lane excision; mode union loses `'path'`; path-only queries refuse
+dark-safe; `folder`/`filename` survive as narrowing modifiers, so ADR-45/ADR-47 laws re-earn
+unchanged — f22/f24 re-earn rows with red-first pinned at the code-edit seam, every other chain
+fixture expected green unmodified) and P-H1 (mirror conform, `src/muninn-api.ts` ONLY, gated AFTER
+P-M1 lands AND passes Coder review per T15) — left as staging carriers `docs/AGENTS/Inkling Tasks.md`
+in both roots (agent family, untracked; mine-then-delete after leg review). The packets carry the
+authority boundary: Inkling edits pinned exact strings ONLY, stops on any pin failure, never
+commits/pushes/releases. Execution of the packets awaits Dan's word to run Inkling.
+
+**Act 2026-11-27 (verbose-logging seed worked by the executor, Dan, verbatim:** "Actually, I'd
+like you to work on the verbose-logging seed. You should be able to see what checkpoints and where
+logging would need to take place to diagnose the lanes."**)** Effects: the checkpoint map was
+authored at measured seams — staging carrier `docs/AGENTS/Verbose Logging Mode -- Proposal.md`
+(agent family, untracked, mine-then-delete on ruling) — lanes L1–L8 with anchors, the honesty law
+(observational, dark-safe tap, never model-fed, never fakes R2 efficacy), and one load-bearing
+measured gap carried unfaked: **G1** — ADR 01's accepted band text promises a null-channel-with-
+reason, but the frozen TS door returns bare `null` and the reason lands only in devtools
+(`api.ts:126` `fail()`); the UI trace cannot cross the door without a ruling (door-diagnostics
+face / frozen-shape version event / scope-down). Naming, defaults, the crossing decision and
+fixture numbering all stay Dan's.
+
+**Clarification act 2026-11-27 (Dan, verbatim, two-part):** "verbose-logging means that once
+it's fully developed, flipping a switch in the settings to turn on verbose logging will report
+all those points to the console log." — and: "The point of the verbose log is that if there is
+something wrong and we don't know where, copying the log will give us the data of the places to
+search. We also have to be careful that having verbose logging doesn't flood the console and
+swamp the main process. It just logs checkpoints, as you were noting." Recorded conformations:
+sink = the devtools console stream (the executor's earlier UI-rendering sink was a misread,
+conformed same day — one settings switch per root, no cross-plugin settings read, chat-view
+notices law unchanged); the log is a fault-LOCALIZER (self-locating lines: round/lane/seam keys
+mapping to the checkpoint map's file:line anchors; last well-formed line + anomaly = bisect point);
+hard bounding law — emissions O(turnOpBound × seams) never per-chunk/per-token/per-candidate,
+zero string work off-state, taps at seam ENDS never inside the chunk decoder, no vault-body dumps
+(bytes + bounded preview only), throwing tap never breaks a lane.
+
+**Act 2026-11-27 (proposal approved — canon; Dan, verbatim:** "The proposal is approved. Please
+turn it into a working design, do the design work and contract and make the packets for Inkling to
+build."**)** Effects: `docs/decisions/adr-02.md` accepted (the verbose lane trace law — one
+`traceVerbosity: boolean` switch per root default off, per-plugin console sink with `[Muninn
+lanes]`/`[Huginn lanes]` log families beside the law-bearing warns, discrete-points ban, O(turn ×
+checkpoint) bound, localizer keys per line, preview N=120, NO door crossing — the G1 residue
+resolves as scope-down: refusal reasons stay lawful `fail()` warns, model-facing answer stays
+generic); design conformations executor's choice, disclosed at acceptance. Checkpoint inventory
+per ADR §2; per-checkpoint pins in the Inkling Tasks carrier packets **P-M2** (Muninn: settings
+field + SettingTab row + `api.ts` factory defaulted param + answered-side lines at
+`searchSemantic` :230 and `listNotes` both-lane returns) and **P-H2** (Huginn: settings field +
+`src/trace.ts` helper + option threading + tap lines in `turn.ts` anatomy/transport and `client.ts`
+one-shot). Chain adjudication pinned: both chains GREEN, ZERO fixture edits (first-green
+justification written in the ADR per law). Ordering law kept: P-M2's `listNotes` set-lane anchor
+sits under P-M1's blast radius — if P-M1 lands first, P-M2 rebases; execution still awaits Dan's
+word to run Inkling. Machine-half fixture rows remain owed (chain edit, Dan's word).
+
+
+**Correction act 2026-11-27 (Dan, verbatim:** "Console stream is not shared between the plugins.
+But if they both sink to the developer's console each will be visible under that plugin's log.
+The bounding should at least prevent it from being a stream was my concern. We don't want a
+stream of 'no input yet' or 'waiting' for example. It has to be discrete points."**)** Conformations:
+per-plugin log grouping — each block reads STANDALONE, cross-plugin pairing joins only on discrete
+` t=<epoch>` call/answer-boundary stamps + the query/path keys already in both lines (the
+executor's earlier "one interleaved stream" assumption is retired); and the no-stream law —
+progress/waiting/heartbeat lines BANNED at all tiers, waiting lanes silent until their boundary
+event fires, a checkpoint whose only information is "not yet" does not exist.
+
 ## 12. Baselines landed (step-4 execution, 2026-11-26 — measured receipts)
 
 Huginn (HEAD `12a64e5` at tasking; receipts measured after execution):

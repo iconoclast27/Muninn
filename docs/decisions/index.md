@@ -12,3 +12,4 @@ carry status lines and pointers, not restatements, from here.
 | ADR | Title | Status |
 |---|---|---|
 | 01 | The narrowed door contract (Muninn) | **Accepted 2026-11-27** — Dan's ruling act, verbatim "ratified." (as proposed); implementation gated on per-leg acts, T15 order |
+| 02 | The verbose lane trace mode (console fault-localizer) | **Accepted 2026-11-27** — Dan's ruling act, verbatim "The proposal is approved." on the checkpoint proposal (seed words + corrections in the Ledger); conformations executor's, disclosed; chain-green adjudication, machine-half rows await a chain-edit word |
