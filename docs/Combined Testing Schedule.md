@@ -127,4 +127,40 @@ Seam note (measured at this leg, 2026-11-27): the teach-layer mechanism survives
    chat send follows the edit (getter semantics, disclosed; the watcher reload is the committed
    `main.ts` face).
 
-Today: H1–H5 authored (H3 amended same day for the ADR 01 mode ruling; H5 rides the recipes leg); no other blocks yet.
+### H6 — The narrowed door: `notesLike` one family, path questions native (authored 2026-11-28, as the T15 door-narrow legs landed — door 1276a85, mirror 8cb9aae; machine halves policed by M-f30 R8 + M-f29/M-f31–M-f33 in the Muninn root)
+
+Reportable observables at the chat surface (no console), at the narrowed contract (adr-01, Accepted —
+pointer only, the law lives at `docs/decisions/adr-01.md`):
+
+1. A path-shaped question ("what's in folder Project/Alpha?", "find note foo") answers WITHOUT a
+   `muninn__notesLike` consult — Huginn's own API owns paths, folders, tags, links, lexical search
+   (D-1 authority); the door never serves a path-answer set (machine half: M-f30 R8 — `listNotes`
+   with a narrowing modifier and no lane selector refuses dark-safe, `[F30] VERDICT: GREEN` with the
+   row measured through RED→GREEN at the landing 2026-11-28).
+2. Narrowing modifiers still compose: "notes like X tagged Y" and "tagged Y inside folder Z" answer
+   — the excision eats the path-ANSWER lane, not the surviving lanes' composition (machine halves:
+   M-f29 S3/S6 and M-f30 G1 rows, green unmodified across both legs).
+3. Six methods stay six: nothing the model can call disappeared with the lane — only its vocabulary
+   narrowed (machine half: the mirror's `ListNotesFilter`/`ListNotesResult` shapes at
+   `src/muninn-api.ts` compile against the narrowed door; the version-skew guard at
+   `src/main.ts:190`/`:192` stayed).
+
+### H7 — Verbose lane trace (authored 2026-11-28, as the adr-02 trace faces landed both roots; observational — machine halves: both chains zero-edit green at the landings, 29 × GREEN Muninn / 18 × GREEN Huginn, typecheck exit 0)
+
+Reportable observables at the dev console + chat (adr-02 is the law — `docs/decisions/adr-02.md`,
+Muninn root):
+
+1. OFF by default is felt as silence: a turn with `traceVerbosity` off shows no `[Muninn lanes]` /
+   `[Huginn lanes]` console lines — off means zero trace work at every call site.
+2. ON shows discrete checkpoint lines, never a progress stream: `turn start` / per-round
+   `llm=`, `gate=`, `applied=`, and an `end=` line (`answer|cap|abort|stop`) — a waiting lane is
+   silent until its boundary event fires; per-plugin log family keeps the two plugins' lines
+   separable in one console.
+3. The trace never changes the answer: the SAME chat send with the flag on and off produces the same
+   visible answer and the same vault bytes — observational behind the settings knob, no door crossing
+   (refusals stay with the law-bearing `fail()` warns).
+4. Flipping the knob is settings-only: toggling the 'Verbose lane trace' row applies on the next
+   turn, no code act (both roots' `Setting` rows landed with `.addToggle`).
+
+Today: H1–H5 authored 2026-11-27 (rebuild seams); H6/H7 authored 2026-11-28 as the T15 door-narrow
+legs and the adr-02 trace faces landed; no other blocks yet.
