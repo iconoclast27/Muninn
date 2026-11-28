@@ -162,5 +162,32 @@ Muninn root):
 4. Flipping the knob is settings-only: toggling the 'Verbose lane trace' row applies on the next
    turn, no code act (both roots' `Setting` rows landed with `.addToggle`).
 
+**Conform 2026-11-28 (adr-03 freshness act — observables ride the implementation legs, not authored
+until those legs land):** with the flag riding `Hit`, the label clause "not freshness" shifts to
+naming the `[STALE]` marker; the tester observable is that a note edited after the last scan answers
+its "notes like" row marked `[STALE]`, and an unedited row answers unmarked, and the mark never
+changes vault bytes. Held: not yet authored as observables — the door/mirror/render legs are the
+gates (adr-03 Accepted; implementation awaits per-leg acts).
+
+### H8 — The external-reading family: `web__*` shape before function (authored 2026-11-28, as the adr-02 carve-out ruling landed the LAW only — observables ride the implementation legs; machine halves await their acts)
+
+Reportable observables at the chat surface, at the carve-out (law: Huginn root `docs/decisions/adr-02.md` — pointer only):
+
+1. The verbs EXIST before they WORK: with `webEnabled` off (default), a `web__search` consult
+   answers honestly ("disabled"/"not wired") as a tool error — the model sees a real web-family
+   boundary, not an invented answer; enabling via the settings row changes what the verbs DO, not
+   whether they EXIST.
+2. Gate downgrade is FELT: in AUTOAPPROVE mode, a turn that read the web first DOWNGRADES that
+   turn's writes to a modal pause (D-13, now with a manifest referent); a turn with no web read
+   auto-approves as before.
+3. Web content is DATA at the wire: a fetched page body carrying instruction-shaped text arrives
+   only inside the `<<<huginn-tool-result` delimiter at `role:"tool"` — never as a system/user turn
+   (R9's face extended to web objects, the ruled injection requirement; machine-half red-first pin
+   owed at the web-leg fixture).
+4. The crawl is NOT here: nothing in this build offers a crawl verb; the `web__` namespace simply
+   leaves room (ruling d — carve-out only).
+
 Today: H1–H5 authored 2026-11-27 (rebuild seams); H6/H7 authored 2026-11-28 as the T15 door-narrow
-legs and the adr-02 trace faces landed; no other blocks yet.
+legs and the adr-02 trace faces landed; H8 authored 2026-11-28 as the `web__` carve-out LAW landed
+(observables not yet run — implementation legs are gates); H6 carries a dated freshness conform
+placeholder (adr-03, legs gated); no other blocks yet.

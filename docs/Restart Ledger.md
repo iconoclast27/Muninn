@@ -536,3 +536,33 @@ Measured receipts, both repos, 2026-11-26:
 - **Gates after the landing:** T15 lane's door-narrow + mirror + trace legs CLOSED by this amendment;
   remaining gates unchanged — rebuild legs await their per-leg acts (Design Report §8/§10), release line
   empty until step 7's merged smoke.
+
+## 14. Amendment 2026-11-28 (design pass — freshness ruling act + external-reading carve-out; Coders sweep 3)
+
+- **Freshness ruling acts (Dan, verbatim, over the re-presented FULL option set {A answer-time
+  compare, B edit-time marks, C status quo — lane scan determines staleness for repair only, D
+  hybrid scan-timestamp}:** "So freshness is approved." then "So we can indeed go with A." The
+  presentation-law face (a ruling record names the set actually presented; the original table
+  omitted C) is recorded in the central memory shelf and re-priced in the Shape Map before the
+  word — the ruling's scope covers {A,B,C,D} as priced there. Law: `docs/decisions/adr-03.md`
+  (Status Accepted 2026-11-28) — determination at ANSWER time, `Hit.stale: boolean | null`
+  rides the door (a contract conform in frozen adr-01 territory), size+mtime only (over-flag
+  permitted, under-flag not), the committed lane repair path (`lane.ts:481-483`) untouched.
+- **External-reading carve-out ruling acts (Dan, verbatim, at the S1 board):** "a) should there be
+  a web search tool? YES.  b) does it have to immediately work? NO. This is carving out the shape
+  of the whole plug in and doing what we can." — "c) what can it use? Well, it should be able to be
+  enabled or disabled from the UI, and it might be allowed to use the Obsidian webkit browser at
+  first, and later we could add SEARXNG, which I have, or Tavily." — "d) one of the reasons why
+  it's web__ is because there could be a tool calling Tavily's web crawl at some point. BUT WE
+  DON'T HAVE TO IMPLEMENT ALL THAT YET. We're carving out the shape, so that we have a whole
+  plugin to test and that should give us good info when it comes to implementing more advanced
+  features later." Plus the added requirement (Dan, verbatim): "reading web objects should be
+  protected from injection." The executor's gate-downgrade anchor (D-13's detector, `gate.ts:115`,
+  refers to MANIFEST name-class once the family lands) was measured and surfaced at the board
+  before the word; Dan's word acknowledged it ("Good you caught the Gate downgrade point").
+  Law: Huginn root `docs/decisions/adr-02.md` (Status Accepted 2026-11-28).
+- **Gates after this amendment:** S1 (web family: manifest leg, client/gate re-anchor leg,
+  settings knob leg) and S2 (freshness: door helper + taps, mirror conform, render + label
+  clause) are OPEN with law; implementation awaits per-leg acts — no pins authored against
+  undecided faces (M-f32/M-f33 disposition, the `[STALE]` wording's final form at the model
+  surface, the crawl verb's shape). Release line still empty; step 7's merged smoke still held.
