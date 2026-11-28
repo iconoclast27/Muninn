@@ -504,3 +504,35 @@ Measured receipts, both repos, 2026-11-26:
 - **Gates after the surgery:** unchanged — the narrowed-door-contract act (T15 lane) still leads any
   `api.ts` door edit and the Huginn mirror; rebuild legs await their per-leg acts (Design Report §8/§10);
   no version/tag/release in the new lineage until the merged smoke (step 7).
+
+### Amendment 2026-11-28 — T15 delegation lane lands (Coder sweep, both roots; measured receipts)
+
+- **Dan's 2026-11-28 re-ruling of the delegation flow (verbatim):** "The sessions should be a complete
+  sweep by Coder, a complete sweep by Inkling, a complete sweep by Coder… to maintain a working flow."
+  and "we want to maximise the work that Inkling can get done quickly, so don't put unnecessary gates in
+  the way. If you prepare multiple legs from different parts of the project, it can sweep through and be
+  ready for you again quickly." Law carrier: central `~/Projects/AGENTS.md` Delegation/sweep section —
+  whole sweeps, gates only at sweep boundaries, multiple legs per carrier, only data dependencies order
+  pins. Same-day central-home act: the per-repo `AGENTS.md` pair and the per-root memory pair retired;
+  one law file at `~/Projects/AGENTS.md`, one lessons shelf at `~/Projects/docs/AGENTS/memory.md`
+  (forward-reusable-knowledge test).
+- **Landing (Coder finished the unfinished packets, then committed — Dan's word: "Review the work that
+  Inkling was supposed to do … finish it. Then you can land that work and commit it").** Muninn local
+  `git log -1` `1276a85` (child of birth `f8c6aa4`): P-M1′ adr-01 narrowed-door conform (f30 R8 row
+  earned the honest RED — `[F30] VERDICT: RED — 1 failure(s)`, npm exit 1 at the committed door — then
+  green) + P-M2′ adr-02 verbose lane trace face (never run by Inkling, applied by Coder against
+  re-measured post-P-M1′ anchors, all unique). Huginn local `git log -1` `8cb9aae` (child of birth
+  `d0000ad`): P-H1 mirror conform + P-H2 trace face; the defective E7d pin (dropped `continue;`, two
+  TS2454 at `turn.ts:178,33`/`:196,21`) closed at the landing keeping the committed tolerance
+  (`skipped++;` + `continue;`). Verdicts measured at the landings: Muninn `typecheck` exit 0 AND
+  `fixtures` 29 × GREEN exit 0; Huginn `typecheck` exit 0 AND 18 × GREEN exit 0, zero fixture edits
+  either side; chains unchanged at `package.json:11`; binding order honored (door commit precedes
+  mirror commit in one sweep).
+- **Remote unchanged, measured:** `git ls-remote` HEAD — Muninn `f8c6aa4…`, Huginn `d0000ad…`: the
+  landings are local; push awaits its own word.
+- **Carriers mined (receipts = these lines + the commit messages) and DELETED:** `docs/AGENTS/Inkling
+  Tasks 2026-11-28T1419Z.md` (Muninn root), `docs/AGENTS/Inkling Tasks 2026-11-28T1421Z.md` (Huginn
+  root), and the graduated `docs/AGENTS/Verbose Logging Mode -- Proposal.md` (canon: adr-02).
+- **Gates after the landing:** T15 lane's door-narrow + mirror + trace legs CLOSED by this amendment;
+  remaining gates unchanged — rebuild legs await their per-leg acts (Design Report §8/§10), release line
+  empty until step 7's merged smoke.
