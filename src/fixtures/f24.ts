@@ -22,7 +22,7 @@
 //   npx tsx src/fixtures/f24.ts
 // =============================================================================
 
-import { createMuninnApi, type MuninnApi, type Hit, type TextSearchResult, type SemanticSearchResult, type ChunkRef, type TagInfo, type ReindexResult, type ReindexProgress, type ListNotesResult, type NotesRow } from '../api.ts';
+import { createMuninnApi, type MuninnApi, type Hit, type TextSearchResult, type SemanticSearchResult, type ChunkRef, type TagInfo, type ReindexResult, type ReindexProgress, type ListNotesResult, type NotesRow, type ListNotesFilter } from '../api.ts';
 import type { Store } from '../store/store.ts';
 
 let failures = 0;
@@ -71,11 +71,15 @@ function fakeApi(opts: {
         },
         // Grown for the widened interface (ADR-37): the sixth door, with the
         // filename/header split row shape (P11 checks it below).
-        async listNotes(): Promise<ListNotesResult | null> {
+        async listNotes(filter: ListNotesFilter): Promise<ListNotesResult | null> {
+            // narrowed door 2026-11-27 (adr-01): a path-answer query (no lane selector) refuses, like the real door
+            if (filter.tag === undefined && filter.lexical === undefined && filter.scan === undefined && filter.like === undefined) {
+                return null;
+            }
             return {
                 notes: [{ path: 'notes/a.md', filename: 'a.md', header: 'A', mtime: 1, tags: ['ml'] } as NotesRow],
                 total: 1,
-                mode: 'path',
+                mode: 'tag',
             };
         },
         async forceReindex(onProgress?: (p: ReindexProgress) => void): Promise<ReindexResult | null> {
@@ -166,11 +170,16 @@ async function main(): Promise<void> {
     check('P10 invalid k returns null', realApi.relatedChunks('notes/a.md', 0) === null);
 
     // P11 — listNotes, the sixth door: the answer shape and the filename/header split
-    const ln = await fakeApi({}).listNotes({ folder: 'notes' });
+    //      (re-anchored 2026-11-28 at the narrowed door — adr-01 Accepted: lane answers
+    //      carry the shape; a path-answer query is refused dark-safe. R8 in f30 is the
+    //      real-door row; this mock check only pins the mock.)
+    const lnPath = await fakeApi({}).listNotes({ folder: 'notes' });
+    check('P11 path-answer query refused (adr-01: path questions answer natively)', lnPath === null);
+    const ln = await fakeApi({}).listNotes({ tag: 'ml' });
     const lnRow = ln === null ? undefined : ln.notes[0];
     check('P11 listNotes answer carries notes/total/mode',
         ln !== null && Array.isArray(ln.notes) && typeof ln.total === 'number' &&
-        (ln.mode === 'path' || ln.mode === 'tag' || ln.mode === 'bm25' || ln.mode === 'scan' || ln.mode === 'semantic'));
+        (ln.mode === 'tag' || ln.mode === 'bm25' || ln.mode === 'scan' || ln.mode === 'semantic'));
     check('P11 listNotes row is path/filename/header/mtime/tags, no title',
         lnRow !== undefined
             && typeof lnRow.path === 'string'

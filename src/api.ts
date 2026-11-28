@@ -79,8 +79,8 @@ export interface ReindexResult {
 
 // listNotes — the sixth door (adr-37.md, Accepted 2026-11-18).
 export interface ListNotesFilter {
-    folder?: string;    // vault-relative path prefix (folder boundary, not substring); trailing separators name the same folder
-    filename?: string;  // basename substring
+    folder?: string;    // narrowing modifier only (adr-01 conform 2026-11-27; the law lives in docs/decisions/adr-01.md) — vault-relative path prefix (folder boundary, not substring); trailing separators name the same folder
+    filename?: string;  // narrowing modifier only (adr-01 conform) — basename substring
     tag?: string;       // exact vocabulary tag, no prefix match
     lexical?: string;   // body words → FTS5 MATCH (unbounded); 2 characters delegate to the scan lane (ADR-25 floor)
     scan?: string;      // body substring → LIKE (row fetch capped at 100 chunk rows; total counts the whole set, ADR-45)
@@ -100,7 +100,7 @@ export interface NotesRow {
 export interface ListNotesResult {
     notes: NotesRow[];
     total?: number; // set size counted before limit/offset — absent for the semantic lane
-    mode: 'path' | 'tag' | 'bm25' | 'scan' | 'semantic';
+    mode: 'tag' | 'bm25' | 'scan' | 'semantic';   // narrowed 2026-11-27 per docs/decisions/adr-01.md (Accepted): path-answer lane excised; pointer only, the law lives there
 }
 
 export interface MuninnApi {
@@ -125,6 +125,16 @@ function fail<T>(reason: string): T | null {
     // eslint-disable-next-line no-console
     console.warn('[Muninn API] dark-safe failure:', reason);
     return null;
+}
+
+// ADR-02 (2026-11-27): the verbose lane trace — one discrete checkpoint line per
+// answered door verb on THIS plugin's console log, gated by the factory flag at
+// each call site. Refusals stay with the law-bearing fail() warn above. The tap
+// never throws into a lane.
+function laneTrace(detail: string): void {
+    try {
+        console.log(`[Muninn lanes] t=${Date.now()} ${detail}`);
+    } catch { /* dark-safe: logging never breaks a lane */ }
 }
 
 // ---------------------------------------------------------------------------
@@ -169,6 +179,8 @@ export function createMuninnApi(
     // absolute floor, 0.5 between the measured classes). Snapshot at
     // construction, like every other door wiring.
     semanticBand: number | null = null,
+    // ADR-02 (2026-11-27): verbose lane trace flag; callers that pass nothing stay inert.
+    traceOn: boolean = false,
 ): MuninnApi {
     return {
         searchText(query: string): TextSearchResult | null {
@@ -226,6 +238,10 @@ export function createMuninnApi(
             // Unconfigured (null) keeps today's surface untouched.
             if (semanticBand !== null && answer.topScore !== null && answer.topScore < semanticBand) {
                 return fail('below margin');
+            }
+            if (traceOn) {
+                laneTrace(`semantic answered top=${answer.topScore} hits=${answer.hits.length} ` +
+                    `tie=${answer.tie === null ? '-' : `${answer.tie.atScore}|${answer.tie.returnedAtScore}`}`);
             }
             return { hits: answer.hits.map(toHit), tie: answer.tie };
         },
@@ -389,7 +405,7 @@ export function createMuninnApi(
                 && (filename === undefined || path.slice(path.lastIndexOf('/') + 1).includes(filename));
 
             if (like === undefined) {
-                let mode: 'path' | 'tag' | 'bm25' | 'scan';
+                let mode: 'tag' | 'bm25' | 'scan';
                 let matchedPaths: Set<string> | null = null;
                 let matchedHeaders: Map<string, string> | null = null;
                 // Truth count for a lane whose row fetch is internally capped.
@@ -439,7 +455,11 @@ export function createMuninnApi(
                     mode = 'tag';
                     matchedPaths = notePathsForTag(store, tag);
                 } else {
-                    mode = 'path';
+                    // Narrowed door 2026-11-27 (docs/decisions/adr-01.md, Accepted): the
+                    // path-answer lane of the listNotes frame is excised; folder/filename
+                    // survive as narrowing modifiers only (the lane branches above still
+                    // compose them). Dark-safe refusal per the door law in adr-10.md.
+                    return fail('listNotes: path-answer query excised — path questions answer natively (adr-01)');
                 }
                 const rows = listNoteRows(store, null)
                     .filter((row) => matchesPath(row.path) && (matchedPaths === null || matchedPaths.has(row.path)))
@@ -460,6 +480,10 @@ export function createMuninnApi(
                 // through the store door for a lane whose fetch is internally
                 // capped, the row set itself for the unbounded lanes (ADR-45).
                 const total = cappedTruth ?? rows.length;
+                if (traceOn) {
+                    laneTrace(`list answered mode=${mode} total=${total} capped=${cappedTruth !== null} ` +
+                        `slice=${offset}|${limit === undefined ? 'rest' : limit}`);
+                }
                 const end = limit === undefined ? total : offset + limit;
                 return {
                     notes: rows.slice(offset, Math.max(offset, end)),
@@ -521,6 +545,9 @@ export function createMuninnApi(
                 if (notes.length >= want) {
                     break;
                 }
+            }
+            if (traceOn) {
+                laneTrace(`list answered mode=semantic rows=${notes.length}`);
             }
             return { notes, mode: 'semantic' };
         },

@@ -18,6 +18,10 @@ export interface MuninnSettings {
     // knob, so a post-epoch revisit is a settings edit, not a code act.
     // null = band OFF (user opt-out), not a missing value.
     semanticBand: number | null;
+    // ADR-02 (2026-11-27): the verbose lane trace — discrete checkpoint lines on
+    // this plugin's own console log ([Muninn lanes] family), off by default.
+    // Observational only (adr-02.md is the law).
+    traceVerbosity: boolean;
 }
 
 export const DEFAULT_SETTINGS: MuninnSettings = {
@@ -26,6 +30,7 @@ export const DEFAULT_SETTINGS: MuninnSettings = {
     embedTimeoutMs: 30000,
     embedDim: 768,
     semanticBand: 0.5, // Dan's ruling 2026-11-26: absolute floor, default 0.5 between the classes
+    traceVerbosity: false, // ADR-02: verbose lane trace OFF (settings knob, Dan's to flip)
 };
 
 export function sanitizeSettings(raw: unknown): MuninnSettings {
@@ -49,6 +54,10 @@ export function sanitizeSettings(raw: unknown): MuninnSettings {
     if (typeof r.semanticBand === 'number' && Number.isFinite(r.semanticBand)
         && r.semanticBand >= -1 && r.semanticBand <= 1) {
         out.semanticBand = r.semanticBand;
+    }
+    // ADR-02: the trace flag rides only as a real boolean; anything else stays false.
+    if (typeof r.traceVerbosity === 'boolean') {
+        out.traceVerbosity = r.traceVerbosity;
     }
     return out;
 }

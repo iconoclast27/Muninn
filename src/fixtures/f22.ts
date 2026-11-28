@@ -57,7 +57,8 @@ function fakeApi(opts: {
         // Grown for the widened interface (Muninn f27, the sixth door): the
         // search-host mapping must still compile against six doors.
         async listNotes(): Promise<ListNotesResult | null> {
-            return { notes: [], total: 0, mode: 'path' };
+            // narrowed door 2026-11-27 (adr-01): mode union lost 'path'; this mock answers on a surviving lane
+            return { notes: [], total: 0, mode: 'tag' };
         },
         async forceReindex(): Promise<{ files: number; chunks: number; embedNew: number; durationMs: number } | null> {
             return { files: 0, chunks: 0, embedNew: 0, durationMs: 0 };

@@ -25,6 +25,8 @@
 //   R4  {lexical, scan}  → must be refused. Today: the bm25 set answers.
 //   R5  {lexical, tag}   → must be refused. Today: the bm25 set answers.
 //   R6  {scan, tag}      → must be refused. Today: the scan set answers.
+//   R8  {folder} alone   → must be refused (adr-01, Accepted 2026-11-27 — pointer, the law
+//                          lives in docs/decisions/adr-01.md). Today: the path lane answers.
 //
 // FIRST-GREEN guards, justified here (R14 — a first-green guard needs written
 // justification) because they pin behavior ADR-47 keeps unchanged:
@@ -150,6 +152,13 @@ async function main(): Promise<void> {
     check('R5 lexical with tag is refused (null)', r5 === null, JSON.stringify(r5));
     const r6 = await api.listNotes({ scan: 'ops', tag: 'ops' });
     check('R6 scan with tag is refused (null)', r6 === null, JSON.stringify(r6));
+
+    // R8 — a narrowing modifier with no lane selector refuses (adr-01, Accepted 2026-11-27 —
+    //      pointer, the law lives in docs/decisions/adr-01.md). The plain door answers a
+    //      path-only query today, so this row is RED at the committed door.
+    const r8 = await api.listNotes({ folder: 'Project/Alpha' });
+    check('R8 folder alone is refused (null), not a path-answer set', r8 === null,
+        JSON.stringify({ mode: r8?.mode, total: r8?.total, rows: r8?.notes?.length }));
 
     // G1 — single selectors still answer: the refusal must not eat the
     // surviving lane. Truth under the cap, so rows == total.

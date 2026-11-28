@@ -86,6 +86,7 @@ export default class MuninnPlugin extends Plugin {
             embedClient,
             laneReindexer(this.lane),
             this.settings.semanticBand,   // T58 A3: null = band DISABLED (opt-out)
+            this.settings.traceVerbosity, // ADR-02: [Muninn lanes] trace flag, default off
         );
 
         // Plugin 2 skill harness has moved to Huginn. Muninn exposes the
@@ -538,6 +539,16 @@ class MuninnSettingTab extends PluginSettingTab {
                             await this.plugin.saveData(this.plugin.settings);
                         }
                     }
+                }));
+
+        new Setting(containerEl)
+            .setName('Verbose lane trace')
+            .setDesc('Discrete diagnostic checkpoint lines in the plugin console log — answered door verbs, band state, listNotes lane and totals. Never a progress stream. Off by default.')
+            .addToggle((toggle) => toggle
+                .setValue(this.plugin.settings.traceVerbosity)
+                .onChange(async (value) => {
+                    this.plugin.settings.traceVerbosity = value;
+                    await this.plugin.saveData(this.plugin.settings);
                 }));
 
         const reindexSetting = new Setting(containerEl)
